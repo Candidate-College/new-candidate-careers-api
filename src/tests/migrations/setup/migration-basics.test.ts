@@ -21,6 +21,11 @@ describe('Migration Basics', () => {
     await db.schema.dropTableIfExists('test_migration_table');
   });
 
+  afterEach(async () => {
+    // Ensure cleanup runs even if test fails
+    await db.schema.dropTableIfExists('test_migration_table');
+  });
+
   describe('Basic Migration Functionality', () => {
     it('should be able to create a simple table', async () => {
       await db.schema.createTable('test_migration_table', table => {
@@ -67,9 +72,6 @@ describe('Migration Basics', () => {
         AND column_name = 'description'
       `);
       expect(columns.rows.length).toBe(1);
-
-      // Drop table
-      await db.schema.dropTable('test_migration_table');
     });
 
     it('should be able to add and remove indexes', async () => {
@@ -88,9 +90,6 @@ describe('Migration Basics', () => {
         AND indexname = 'idx_test_name'
       `);
       expect(indexes.rows.length).toBe(1);
-
-      // Drop table
-      await db.schema.dropTable('test_migration_table');
     });
   });
 
@@ -109,9 +108,6 @@ describe('Migration Basics', () => {
       // Table should still exist after transaction
       const hasTable = await db.schema.hasTable('test_migration_table');
       expect(hasTable).toBe(true);
-
-      // Cleanup
-      await db.schema.dropTable('test_migration_table');
     });
 
     it('should rollback on transaction failure', async () => {
@@ -160,9 +156,6 @@ describe('Migration Basics', () => {
       expect(columnNames).toContain('is_active');
       expect(columnNames).toContain('created_at');
       expect(columnNames).toContain('updated_at');
-
-      // Cleanup
-      await db.schema.dropTable('test_migration_table');
     });
   });
 });
