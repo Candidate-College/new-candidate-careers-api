@@ -81,7 +81,7 @@ describe('Rollback Integrity Validation', () => {
 
       // Verify data exists
       let roles = await db('roles').select('*');
-      let users = await db('users').select('*');
+      const users = await db('users').select('*');
       expect(roles.length).toBe(2);
       expect(users.length).toBe(2);
 
@@ -89,8 +89,8 @@ describe('Rollback Integrity Validation', () => {
       await usersMigration.down(db);
 
       // Verify users table is dropped but roles table and data remain
-      let hasUsersTable = await db.schema.hasTable('users');
-      let hasRolesTable = await db.schema.hasTable('roles');
+      const hasUsersTable = await db.schema.hasTable('users');
+      const hasRolesTable = await db.schema.hasTable('roles');
       expect(hasUsersTable).toBe(false);
       expect(hasRolesTable).toBe(true);
 
@@ -136,7 +136,7 @@ describe('Rollback Integrity Validation', () => {
       // Verify data exists
       let roles = await db('roles').select('*');
       let permissions = await db('permissions').select('*');
-      let rolePermissions = await db('role_permissions').select('*');
+      const rolePermissions = await db('role_permissions').select('*');
       expect(roles.length).toBe(2);
       expect(permissions.length).toBe(2);
       expect(rolePermissions.length).toBe(3);
@@ -145,9 +145,9 @@ describe('Rollback Integrity Validation', () => {
       await rolePermissionsMigration.down(db);
 
       // Verify role_permissions table is dropped but parent tables and data remain
-      let hasRolePermissionsTable = await db.schema.hasTable('role_permissions');
-      let hasRolesTable = await db.schema.hasTable('roles');
-      let hasPermissionsTable = await db.schema.hasTable('permissions');
+      const hasRolePermissionsTable = await db.schema.hasTable('role_permissions');
+      const hasRolesTable = await db.schema.hasTable('roles');
+      const hasPermissionsTable = await db.schema.hasTable('permissions');
       expect(hasRolePermissionsTable).toBe(false);
       expect(hasRolesTable).toBe(true);
       expect(hasPermissionsTable).toBe(true);
