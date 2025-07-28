@@ -425,9 +425,12 @@ describe('End-to-End Migration Scenarios', () => {
       const roleCount = await db('roles').count('* as count');
       expect(parseInt((roleCount[0]?.count as string) || '0')).toBe(10);
 
-      // Verify performance (should complete within reasonable time)
+      // Verify performance with configurable threshold
       const executionTime = endTime - startTime;
-      expect(executionTime).toBeLessThan(5000); // 5 seconds
+
+      // Use environment variable for performance threshold with stricter default
+      const performanceThreshold = parseInt(process.env.TEST_PERFORMANCE_THRESHOLD_MS || '2000'); // Default 2 seconds instead of 5
+      expect(executionTime).toBeLessThan(performanceThreshold);
 
       // Clean up
       await usersMigration.down(db);
