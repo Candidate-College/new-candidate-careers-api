@@ -1,4 +1,5 @@
 import type { Knex } from 'knex';
+import { PasswordUtils } from '../../utils/password';
 
 export async function seed(knex: Knex): Promise<void> {
   // Deletes ALL existing entries
@@ -7,13 +8,17 @@ export async function seed(knex: Knex): Promise<void> {
   // Base timestamp for July 28, 2025
   const baseTimestamp = new Date('2025-07-28T21:10:30.000Z');
 
+  // Default secure password for all users (should be changed on first login)
+  const defaultPassword = 'SecurePass123!';
+  const hashedPassword = await PasswordUtils.hashPassword(defaultPassword);
+
   // Inserts seed entries
   await knex('users').insert([
     {
       id: 1,
       uuid: 'uuid-user-001',
       email: 'admin@ccp.com',
-      password: '$2y$10$...', // Placeholder for hashed password
+      password: hashedPassword,
       name: 'Admin User',
       role_id: 1, // super_admin
       status: 'active',
@@ -24,7 +29,7 @@ export async function seed(knex: Knex): Promise<void> {
       id: 2,
       uuid: 'uuid-user-002',
       email: 'head.hr@ccp.com',
-      password: '$2y$10$...', // Placeholder for hashed password
+      password: hashedPassword,
       name: 'Budi Santoso',
       role_id: 2, // head_of_hr
       status: 'active',
@@ -35,7 +40,7 @@ export async function seed(knex: Knex): Promise<void> {
       id: 3,
       uuid: 'uuid-user-003',
       email: 'siti.nurhaliza@ccp.com',
-      password: '$2y$10$...', // Placeholder for hashed password
+      password: hashedPassword,
       name: 'Siti Nurhaliza',
       role_id: 3, // hr_staff
       status: 'active',
@@ -46,7 +51,7 @@ export async function seed(knex: Knex): Promise<void> {
       id: 4,
       uuid: 'uuid-user-004',
       email: 'agus.wijaya@ccp.com',
-      password: '$2y$10$...', // Placeholder for hashed password
+      password: hashedPassword,
       name: 'Agus Wijaya',
       role_id: 3, // hr_staff
       status: 'active',
@@ -57,7 +62,7 @@ export async function seed(knex: Knex): Promise<void> {
       id: 5,
       uuid: 'uuid-user-005',
       email: 'dewi.lestari@ccp.com',
-      password: '$2y$10$...', // Placeholder for hashed password
+      password: hashedPassword,
       name: 'Dewi Lestari',
       role_id: 3, // hr_staff
       status: 'active',
@@ -68,7 +73,7 @@ export async function seed(knex: Knex): Promise<void> {
       id: 6,
       uuid: 'uuid-user-006',
       email: 'eko.prasetyo@ccp.com',
-      password: '$2y$10$...', // Placeholder for hashed password
+      password: hashedPassword,
       name: 'Eko Prasetyo',
       role_id: 3, // hr_staff
       status: 'active',
@@ -79,7 +84,7 @@ export async function seed(knex: Knex): Promise<void> {
       id: 7,
       uuid: 'uuid-user-007',
       email: 'fitri.rahmawati@ccp.com',
-      password: '$2y$10$...', // Placeholder for hashed password
+      password: hashedPassword,
       name: 'Fitri Rahmawati',
       role_id: 3, // hr_staff
       status: 'inactive',
@@ -90,7 +95,7 @@ export async function seed(knex: Knex): Promise<void> {
       id: 8,
       uuid: 'uuid-user-008',
       email: 'gunawan.amir@ccp.com',
-      password: '$2y$10$...', // Placeholder for hashed password
+      password: hashedPassword,
       name: 'Gunawan Amir',
       role_id: 3, // hr_staff
       status: 'active',
@@ -101,7 +106,7 @@ export async function seed(knex: Knex): Promise<void> {
       id: 9,
       uuid: 'uuid-user-009',
       email: 'herman.syah@ccp.com',
-      password: '$2y$10$...', // Placeholder for hashed password
+      password: hashedPassword,
       name: 'Herman Syah',
       role_id: 3, // hr_staff
       status: 'active',
@@ -112,7 +117,7 @@ export async function seed(knex: Knex): Promise<void> {
       id: 10,
       uuid: 'uuid-user-010',
       email: 'ida.ayu@ccp.com',
-      password: '$2y$10$...', // Placeholder for hashed password
+      password: hashedPassword,
       name: 'Ida Ayu',
       role_id: 3, // hr_staff
       status: 'active',
