@@ -1,5 +1,6 @@
 import type { Knex } from 'knex';
 import { generateUUIDs } from '../../utils/uuid';
+import { faker } from '@faker-js/faker';
 
 export async function seed(knex: Knex): Promise<void> {
   // Deletes ALL existing entries
@@ -10,6 +11,32 @@ export async function seed(knex: Knex): Promise<void> {
 
   // Generate UUIDs for all job postings
   const jobUUIDs = generateUUIDs(10);
+
+  // Helper function to generate realistic job descriptions
+  const generateJobContent = (role: string, level: string) => {
+    const description = faker.lorem.paragraphs(3, '\n\n');
+    const requirements = [
+      `Minimum ${level.toLowerCase()} experience in ${role.toLowerCase()} role`,
+      faker.lorem.sentence(),
+      faker.lorem.sentence(),
+      faker.lorem.sentence(),
+      faker.lorem.sentence(),
+    ].join('\n• ');
+
+    const responsibilities = [
+      faker.lorem.sentence(),
+      faker.lorem.sentence(),
+      faker.lorem.sentence(),
+      faker.lorem.sentence(),
+      faker.lorem.sentence(),
+    ].join('\n• ');
+
+    return {
+      description: `We are seeking a talented ${role} to join our dynamic team. ${description}`,
+      requirements: `• ${requirements}`,
+      responsibilities: `• ${responsibilities}`,
+    };
+  };
 
   // Inserts seed entries
   await knex('job_postings').insert([
@@ -23,9 +50,7 @@ export async function seed(knex: Knex): Promise<void> {
       job_type_id: 2, // Staff
       employment_level_id: 4, // Senior
       status_id: 2, // Published
-      description: 'Description for Senior Backend Engineer...',
-      requirements: 'Requirements...',
-      responsibilities: 'Responsibilities...',
+      ...generateJobContent('Backend Engineer', 'Senior'),
       created_by: 2, // Budi Santoso
       published_at: new Date('2025-07-20T10:00:00.000Z'),
       created_at: baseTimestamp,
@@ -41,9 +66,7 @@ export async function seed(knex: Knex): Promise<void> {
       job_type_id: 2, // Staff
       employment_level_id: 4, // Senior
       status_id: 2, // Published
-      description: 'Description for Product Manager...',
-      requirements: 'Requirements...',
-      responsibilities: 'Responsibilities...',
+      ...generateJobContent('Product Manager', 'Senior'),
       created_by: 2, // Budi Santoso
       published_at: new Date('2025-07-21T11:00:00.000Z'),
       created_at: baseTimestamp,
@@ -59,9 +82,7 @@ export async function seed(knex: Knex): Promise<void> {
       job_type_id: 1, // Internship
       employment_level_id: 1, // Entry
       status_id: 2, // Published
-      description: 'Description for Digital Marketing Intern...',
-      requirements: 'Requirements...',
-      responsibilities: 'Responsibilities...',
+      ...generateJobContent('Digital Marketing', 'Entry'),
       created_by: 3, // Siti Nurhaliza
       published_at: new Date('2025-07-22T09:00:00.000Z'),
       created_at: baseTimestamp,
@@ -77,9 +98,7 @@ export async function seed(knex: Knex): Promise<void> {
       job_type_id: 2, // Staff
       employment_level_id: 3, // Mid
       status_id: 2, // Published
-      description: 'Description for UI/UX Designer...',
-      requirements: 'Requirements...',
-      responsibilities: 'Responsibilities...',
+      ...generateJobContent('UI/UX Designer', 'Mid'),
       created_by: 4, // Agus Wijaya
       published_at: new Date('2025-07-23T14:00:00.000Z'),
       created_at: baseTimestamp,
@@ -95,9 +114,7 @@ export async function seed(knex: Knex): Promise<void> {
       job_type_id: 2, // Staff
       employment_level_id: 3, // Mid
       status_id: 2, // Published
-      description: 'Description for HR Generalist...',
-      requirements: 'Requirements...',
-      responsibilities: 'Responsibilities...',
+      ...generateJobContent('HR Generalist', 'Mid'),
       created_by: 2, // Budi Santoso
       published_at: new Date('2025-07-24T16:00:00.000Z'),
       created_at: baseTimestamp,
@@ -113,9 +130,7 @@ export async function seed(knex: Knex): Promise<void> {
       job_type_id: 2, // Staff
       employment_level_id: 4, // Senior
       status_id: 2, // Published
-      description: 'Description for DevOps Engineer...',
-      requirements: 'Requirements...',
-      responsibilities: 'Responsibilities...',
+      ...generateJobContent('DevOps Engineer', 'Senior'),
       created_by: 2, // Budi Santoso
       published_at: new Date('2025-07-25T10:00:00.000Z'),
       created_at: baseTimestamp,
@@ -131,9 +146,7 @@ export async function seed(knex: Knex): Promise<void> {
       job_type_id: 2, // Staff
       employment_level_id: 2, // Junior
       status_id: 3, // Closed
-      description: 'Description for Junior Frontend Developer...',
-      requirements: 'Requirements...',
-      responsibilities: 'Responsibilities...',
+      ...generateJobContent('Frontend Developer', 'Junior'),
       created_by: 3, // Siti Nurhaliza
       published_at: new Date('2025-07-15T10:00:00.000Z'),
       created_at: baseTimestamp,
@@ -149,9 +162,7 @@ export async function seed(knex: Knex): Promise<void> {
       job_type_id: 4, // Contract
       employment_level_id: 3, // Mid
       status_id: 1, // Draft
-      description: 'Description for Content Writer...',
-      requirements: 'Requirements...',
-      responsibilities: 'Responsibilities...',
+      ...generateJobContent('Content Writer', 'Mid'),
       created_by: 4, // Agus Wijaya
       published_at: null, // Draft status
       created_at: baseTimestamp,
@@ -167,9 +178,7 @@ export async function seed(knex: Knex): Promise<void> {
       job_type_id: 2, // Staff
       employment_level_id: 3, // Mid
       status_id: 2, // Published
-      description: 'Description for Financial Analyst...',
-      requirements: 'Requirements...',
-      responsibilities: 'Responsibilities...',
+      ...generateJobContent('Financial Analyst', 'Mid'),
       created_by: 2, // Budi Santoso
       published_at: new Date('2025-07-26T11:00:00.000Z'),
       created_at: baseTimestamp,
@@ -185,9 +194,7 @@ export async function seed(knex: Knex): Promise<void> {
       job_type_id: 2, // Staff
       employment_level_id: 5, // Lead
       status_id: 2, // Published
-      description: 'Description for Lead Mobile Developer...',
-      requirements: 'Requirements...',
-      responsibilities: 'Responsibilities...',
+      ...generateJobContent('Mobile Developer', 'Lead'),
       created_by: 2, // Budi Santoso
       published_at: new Date('2025-07-27T12:00:00.000Z'),
       created_at: baseTimestamp,
