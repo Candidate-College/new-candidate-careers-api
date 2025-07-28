@@ -1,5 +1,6 @@
 import type { Knex } from 'knex';
 import { PasswordUtils } from '../../utils/password';
+import { generateUUIDs } from '../../utils/uuid';
 
 export async function seed(knex: Knex): Promise<void> {
   // Deletes ALL existing entries
@@ -12,11 +13,14 @@ export async function seed(knex: Knex): Promise<void> {
   const defaultPassword = 'SecurePass123!';
   const hashedPassword = await PasswordUtils.hashPassword(defaultPassword);
 
+  // Generate UUIDs for all users
+  const userUUIDs = generateUUIDs(10);
+
   // Inserts seed entries
   await knex('users').insert([
     {
       id: 1,
-      uuid: 'uuid-user-001',
+      uuid: userUUIDs[0],
       email: 'admin@ccp.com',
       password: hashedPassword,
       name: 'Admin User',
@@ -27,7 +31,7 @@ export async function seed(knex: Knex): Promise<void> {
     },
     {
       id: 2,
-      uuid: 'uuid-user-002',
+      uuid: userUUIDs[1],
       email: 'head.hr@ccp.com',
       password: hashedPassword,
       name: 'Budi Santoso',
@@ -38,7 +42,7 @@ export async function seed(knex: Knex): Promise<void> {
     },
     {
       id: 3,
-      uuid: 'uuid-user-003',
+      uuid: userUUIDs[2],
       email: 'siti.nurhaliza@ccp.com',
       password: hashedPassword,
       name: 'Siti Nurhaliza',
@@ -49,7 +53,7 @@ export async function seed(knex: Knex): Promise<void> {
     },
     {
       id: 4,
-      uuid: 'uuid-user-004',
+      uuid: userUUIDs[3],
       email: 'agus.wijaya@ccp.com',
       password: hashedPassword,
       name: 'Agus Wijaya',
@@ -60,7 +64,7 @@ export async function seed(knex: Knex): Promise<void> {
     },
     {
       id: 5,
-      uuid: 'uuid-user-005',
+      uuid: userUUIDs[4],
       email: 'dewi.lestari@ccp.com',
       password: hashedPassword,
       name: 'Dewi Lestari',
@@ -71,7 +75,7 @@ export async function seed(knex: Knex): Promise<void> {
     },
     {
       id: 6,
-      uuid: 'uuid-user-006',
+      uuid: userUUIDs[5],
       email: 'eko.prasetyo@ccp.com',
       password: hashedPassword,
       name: 'Eko Prasetyo',
@@ -82,7 +86,7 @@ export async function seed(knex: Knex): Promise<void> {
     },
     {
       id: 7,
-      uuid: 'uuid-user-007',
+      uuid: userUUIDs[6],
       email: 'fitri.rahmawati@ccp.com',
       password: hashedPassword,
       name: 'Fitri Rahmawati',
@@ -93,7 +97,7 @@ export async function seed(knex: Knex): Promise<void> {
     },
     {
       id: 8,
-      uuid: 'uuid-user-008',
+      uuid: userUUIDs[7],
       email: 'gunawan.amir@ccp.com',
       password: hashedPassword,
       name: 'Gunawan Amir',
@@ -104,7 +108,7 @@ export async function seed(knex: Knex): Promise<void> {
     },
     {
       id: 9,
-      uuid: 'uuid-user-009',
+      uuid: userUUIDs[8],
       email: 'herman.syah@ccp.com',
       password: hashedPassword,
       name: 'Herman Syah',
@@ -115,7 +119,7 @@ export async function seed(knex: Knex): Promise<void> {
     },
     {
       id: 10,
-      uuid: 'uuid-user-010',
+      uuid: userUUIDs[9],
       email: 'ida.ayu@ccp.com',
       password: hashedPassword,
       name: 'Ida Ayu',

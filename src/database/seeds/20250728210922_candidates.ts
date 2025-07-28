@@ -1,4 +1,5 @@
 import type { Knex } from 'knex';
+import { generateUUIDs } from '../../utils/uuid';
 
 export async function seed(knex: Knex): Promise<void> {
   // Deletes ALL existing entries
@@ -7,11 +8,14 @@ export async function seed(knex: Knex): Promise<void> {
   // Base timestamp for July 28, 2025
   const baseTimestamp = new Date('2025-07-28T21:10:30.000Z');
 
+  // Generate UUIDs for all candidates
+  const candidateUUIDs = generateUUIDs(10);
+
   // Inserts seed entries
   await knex('candidates').insert([
     {
       id: 1,
-      uuid: 'uuid-cand-001',
+      uuid: candidateUUIDs[0],
       email: 'ahmad.fauzi@email.com',
       full_name: 'Ahmad Fauzi',
       domicile: 'Jakarta',
@@ -24,7 +28,7 @@ export async function seed(knex: Knex): Promise<void> {
     },
     {
       id: 2,
-      uuid: 'uuid-cand-002',
+      uuid: candidateUUIDs[1],
       email: 'riri.aprilia@email.com',
       full_name: 'Riri Aprilia',
       domicile: 'Bandung',
@@ -37,7 +41,7 @@ export async function seed(knex: Knex): Promise<void> {
     },
     {
       id: 3,
-      uuid: 'uuid-cand-003',
+      uuid: candidateUUIDs[2],
       email: 'chandra.putra@email.com',
       full_name: 'Chandra Putra',
       domicile: 'Surabaya',
@@ -50,7 +54,7 @@ export async function seed(knex: Knex): Promise<void> {
     },
     {
       id: 4,
-      uuid: 'uuid-cand-004',
+      uuid: candidateUUIDs[3],
       email: 'diana.sari@email.com',
       full_name: 'Diana Sari',
       domicile: 'Yogyakarta',
@@ -63,7 +67,7 @@ export async function seed(knex: Knex): Promise<void> {
     },
     {
       id: 5,
-      uuid: 'uuid-cand-005',
+      uuid: candidateUUIDs[4],
       email: 'farhan.malik@email.com',
       full_name: 'Farhan Malik',
       domicile: 'Tangerang',
@@ -76,7 +80,7 @@ export async function seed(knex: Knex): Promise<void> {
     },
     {
       id: 6,
-      uuid: 'uuid-cand-006',
+      uuid: candidateUUIDs[5],
       email: 'grace.natalia@email.com',
       full_name: 'Grace Natalia',
       domicile: 'Jakarta',
@@ -89,7 +93,7 @@ export async function seed(knex: Knex): Promise<void> {
     },
     {
       id: 7,
-      uuid: 'uuid-cand-007',
+      uuid: candidateUUIDs[6],
       email: 'hadi.pranata@email.com',
       full_name: 'Hadi Pranata',
       domicile: 'Bekasi',
@@ -102,7 +106,7 @@ export async function seed(knex: Knex): Promise<void> {
     },
     {
       id: 8,
-      uuid: 'uuid-cand-008',
+      uuid: candidateUUIDs[7],
       email: 'indah.permatasari@email.com',
       full_name: 'Indah Permatasari',
       domicile: 'Depok',
@@ -115,7 +119,7 @@ export async function seed(knex: Knex): Promise<void> {
     },
     {
       id: 9,
-      uuid: 'uuid-cand-009',
+      uuid: candidateUUIDs[8],
       email: 'jaya.kusuma@email.com',
       full_name: 'Jaya Kusuma',
       domicile: 'Bogor',
@@ -128,7 +132,7 @@ export async function seed(knex: Knex): Promise<void> {
     },
     {
       id: 10,
-      uuid: 'uuid-cand-010',
+      uuid: candidateUUIDs[9],
       email: 'kartika.dewi@email.com',
       full_name: 'Kartika Dewi',
       domicile: 'Tangerang Selatan',

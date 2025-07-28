@@ -1,4 +1,5 @@
 import type { Knex } from 'knex';
+import { generateUUIDs } from '../../utils/uuid';
 
 export async function seed(knex: Knex): Promise<void> {
   // Deletes ALL existing entries
@@ -7,11 +8,14 @@ export async function seed(knex: Knex): Promise<void> {
   // Base timestamp for July 28, 2025
   const baseTimestamp = new Date('2025-07-28T21:10:30.000Z');
 
+  // Generate UUIDs for all applications
+  const applicationUUIDs = generateUUIDs(10);
+
   // Inserts seed entries
   await knex('applications').insert([
     {
       id: 1,
-      uuid: 'uuid-app-001',
+      uuid: applicationUUIDs[0],
       job_posting_id: 1, // Senior Backend Engineer
       candidate_id: 1, // Ahmad Fauzi
       application_number: 'CC-2025-0001',
@@ -23,7 +27,7 @@ export async function seed(knex: Knex): Promise<void> {
     },
     {
       id: 2,
-      uuid: 'uuid-app-002',
+      uuid: applicationUUIDs[1],
       job_posting_id: 1, // Senior Backend Engineer
       candidate_id: 2, // Riri Aprilia
       application_number: 'CC-2025-0002',
@@ -35,7 +39,7 @@ export async function seed(knex: Knex): Promise<void> {
     },
     {
       id: 3,
-      uuid: 'uuid-app-003',
+      uuid: applicationUUIDs[2],
       job_posting_id: 6, // DevOps Engineer
       candidate_id: 1, // Ahmad Fauzi
       application_number: 'CC-2025-0003',
@@ -47,7 +51,7 @@ export async function seed(knex: Knex): Promise<void> {
     },
     {
       id: 4,
-      uuid: 'uuid-app-004',
+      uuid: applicationUUIDs[3],
       job_posting_id: 4, // UI/UX Designer
       candidate_id: 3, // Chandra Putra
       application_number: 'CC-2025-0004',
@@ -59,7 +63,7 @@ export async function seed(knex: Knex): Promise<void> {
     },
     {
       id: 5,
-      uuid: 'uuid-app-005',
+      uuid: applicationUUIDs[4],
       job_posting_id: 3, // Digital Marketing Intern
       candidate_id: 4, // Diana Sari
       application_number: 'CC-2025-0005',
@@ -71,7 +75,7 @@ export async function seed(knex: Knex): Promise<void> {
     },
     {
       id: 6,
-      uuid: 'uuid-app-006',
+      uuid: applicationUUIDs[5],
       job_posting_id: 3, // Digital Marketing Intern
       candidate_id: 5, // Farhan Malik
       application_number: 'CC-2025-0006',
@@ -83,7 +87,7 @@ export async function seed(knex: Knex): Promise<void> {
     },
     {
       id: 7,
-      uuid: 'uuid-app-007',
+      uuid: applicationUUIDs[6],
       job_posting_id: 5, // HR Generalist
       candidate_id: 8, // Indah Permatasari
       application_number: 'CC-2025-0007',
@@ -95,7 +99,7 @@ export async function seed(knex: Knex): Promise<void> {
     },
     {
       id: 8,
-      uuid: 'uuid-app-008',
+      uuid: applicationUUIDs[7],
       job_posting_id: 9, // Financial Analyst
       candidate_id: 6, // Grace Natalia
       application_number: 'CC-2025-0008',
@@ -107,7 +111,7 @@ export async function seed(knex: Knex): Promise<void> {
     },
     {
       id: 9,
-      uuid: 'uuid-app-009',
+      uuid: applicationUUIDs[8],
       job_posting_id: 2, // Product Manager
       candidate_id: 7, // Hadi Pranata
       application_number: 'CC-2025-0009',
@@ -119,7 +123,7 @@ export async function seed(knex: Knex): Promise<void> {
     },
     {
       id: 10,
-      uuid: 'uuid-app-010',
+      uuid: applicationUUIDs[9],
       job_posting_id: 10, // Lead Mobile Developer (iOS)
       candidate_id: 2, // Riri Aprilia
       application_number: 'CC-2025-0010',
