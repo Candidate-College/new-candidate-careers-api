@@ -29,7 +29,10 @@ describe('Database Setup for Migration Tests', () => {
 
       const testConnection = config.test?.connection as any;
       expect(testConnection).toBeDefined();
-      expect(testConnection?.database).toBe('new_candidate_careers_api_test');
+
+      // Use environment variable for database name instead of hardcoded value
+      const expectedDbName = process.env.DB_NAME || 'new_candidate_careers_api_test';
+      expect(testConnection?.database).toBe(expectedDbName);
     });
 
     it('should have migrations directory configured', () => {
