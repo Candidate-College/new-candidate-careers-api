@@ -89,7 +89,7 @@ describe('Referential Integrity Validation', () => {
       // Verify cascade delete
       rolePermissions = await db('role_permissions').select('*');
       expect(rolePermissions.length).toBe(1);
-      expect(rolePermissions[0].role_id).toBe('2');
+      expect(parseInt(rolePermissions[0].role_id)).toBe(2);
     });
 
     it('should cascade delete role_permissions when permission is deleted', async () => {
@@ -134,7 +134,7 @@ describe('Referential Integrity Validation', () => {
       // Verify cascade delete
       rolePermissions = await db('role_permissions').select('*');
       expect(rolePermissions.length).toBe(1);
-      expect(rolePermissions[0].permission_id).toBe('2');
+      expect(parseInt(rolePermissions[0].permission_id)).toBe(2);
     });
   });
 
@@ -386,8 +386,8 @@ describe('Referential Integrity Validation', () => {
 
       // Verify initial state
       let jobPostings = await db('job_postings').select('department_id');
-      expect(jobPostings[0].department_id).toBe('1');
-      expect(jobPostings[1].department_id).toBe('2');
+      expect(parseInt(jobPostings[0].department_id)).toBe(1);
+      expect(parseInt(jobPostings[1].department_id)).toBe(2);
 
       // Delete the engineering department
       await db('departments').where('id', 1).del();
@@ -395,7 +395,7 @@ describe('Referential Integrity Validation', () => {
       // Verify SET NULL behavior
       jobPostings = await db('job_postings').select('department_id').orderBy('id');
       expect(jobPostings[0].department_id).toBeNull();
-      expect(jobPostings[1].department_id).toBe('2');
+      expect(parseInt(jobPostings[1].department_id)).toBe(2);
     });
   });
 });
