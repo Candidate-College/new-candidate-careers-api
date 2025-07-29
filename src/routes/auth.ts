@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { AuthController } from '@/controllers/AuthController';
+import { authRateLimit } from '@/middleware/rateLimitMiddleware';
 
 const router = Router();
 const authController = new AuthController();
@@ -80,7 +81,7 @@ const authController = new AuthController();
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
  */
-router.post('/register', authController.register);
+router.post('/register', authRateLimit(), authController.register);
 
 /**
  * @swagger
@@ -149,6 +150,6 @@ router.post('/register', authController.register);
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
  */
-router.post('/login', authController.login);
+router.post('/login', authRateLimit(), authController.login);
 
 export default router;

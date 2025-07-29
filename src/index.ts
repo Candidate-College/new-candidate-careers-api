@@ -8,7 +8,6 @@ import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import compression from 'compression';
-import rateLimit from 'express-rate-limit';
 import cookieParser from 'cookie-parser';
 import swaggerJsdoc from 'swagger-jsdoc';
 import swaggerUi from 'swagger-ui-express';
@@ -17,6 +16,9 @@ import { errorHandler } from '@/middleware/errorHandler';
 import { notFoundHandler } from '@/middleware/notFoundHandler';
 import { cookieMiddleware, cookieValidationMiddleware } from '@/middleware/cookieMiddleware';
 import { corsMiddleware } from '@/middleware/corsMiddleware';
+import { moderateSecurityHeaders } from '@/middleware/securityHeaders';
+import { moderateSanitizer } from '@/middleware/inputSanitizer';
+import { generalRateLimit } from '@/middleware/rateLimitMiddleware';
 import apiRoutes from '@/routes';
 import { logger } from '@/utils/logger';
 import { connectDatabase } from '@/config/database';
@@ -26,14 +28,12 @@ import swaggerOptions from '@/config/swagger';
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Rate limiting
-const limiter = rateLimit({
-  windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '900000', 10), // 15 minutes
-  max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '100', 10), // limit each IP to 100 requests per windowMs
-  message: 'Too many requests from this IP, please try again later.',
-});
+// Enhanced security middleware
+app.use(moderateSecurityHeaders()); // Enhanced security headers
+app.use(moderateSanitizer()); // Input sanitization
+app.use(generalRateLimit()); // General API rate limiting
 
-// Middleware
+// Legacy middleware (kept for compatibility)
 app.use(helmet()); // Security headers
 app.use(cors(corsConfig)); // CORS configuration
 app.use(corsMiddleware); // CORS logging and security
@@ -49,7 +49,6 @@ app.use(cookieValidationMiddleware);
 
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
-app.use(limiter); // Apply rate limiting
 
 // Swagger documentation setup
 const specs = swaggerJsdoc(swaggerOptions);
