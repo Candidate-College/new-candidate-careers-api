@@ -29,7 +29,7 @@ export interface EmailOptions {
   }>;
 }
 
-class MailerService {
+export class MailerService {
   private transporter: nodemailer.Transporter;
   private config: MailerConfig;
 
@@ -156,8 +156,5 @@ class MailerService {
 
 // Create and export a singleton instance
 export const mailer = new MailerService();
-
-// Export the class for testing purposes
-export { MailerService };
 
 export default mailer;
