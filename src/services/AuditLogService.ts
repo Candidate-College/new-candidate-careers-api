@@ -250,7 +250,7 @@ export class AuditLogService {
    * Log email verification event
    */
   async logEmailVerification(
-    userId: number,
+    userId: number | null,
     success: boolean,
     error?: string,
     ipAddress?: string
@@ -321,7 +321,7 @@ export class AuditLogService {
    * Log login event
    */
   async logLogin(
-    userId: number,
+    userId: number | null,
     success: boolean,
     error?: string,
     ipAddress?: string,

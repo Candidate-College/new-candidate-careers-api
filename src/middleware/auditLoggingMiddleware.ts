@@ -27,7 +27,7 @@ export class AuditLoggingMiddleware {
       const userAgent = req.get('User-Agent');
       const ipAddress = req.ip;
       const isSuccess = statusCode === 200;
-      const userId = isSuccess && authReq.user ? parseInt(authReq.user.id, 10) : 0;
+      const userId = isSuccess && authReq.user ? parseInt(authReq.user.id, 10) : null;
       auditService
         .logLogin(
           userId,
@@ -88,7 +88,7 @@ export class AuditLoggingMiddleware {
    * Middleware to log authentication attempts
    */
   logAuthAttempts = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-    const originalSend = res.send;
+    const originalSend = res.send.bind(res);
 
     // Override res.send to capture response
     res.send = (body: unknown): Response => {
@@ -97,7 +97,7 @@ export class AuditLoggingMiddleware {
       this.handleLogoutAudit(req);
       this.handleProfileUpdateAudit(req, statusCode);
       this.handlePasswordChangeAudit(req, statusCode);
-      return originalSend.call(this, body);
+      return originalSend.call(res, body);
     };
 
     next();
@@ -107,7 +107,7 @@ export class AuditLoggingMiddleware {
    * Middleware to log user registration events
    */
   logUserRegistration = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-    const originalSend = res.send;
+    const originalSend = res.send.bind(res);
     const auditService = this.auditLogService;
 
     res.send = function (body: unknown): Response {
@@ -140,7 +140,7 @@ export class AuditLoggingMiddleware {
         }
       }
 
-      return originalSend.call(this, body);
+      return originalSend.call(res, body);
     };
 
     next();
@@ -150,7 +150,7 @@ export class AuditLoggingMiddleware {
    * Middleware to log email verification events
    */
   logEmailVerification = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-    const originalSend = res.send;
+    const originalSend = res.send.bind(res);
     const auditService = this.auditLogService;
 
     res.send = function (body: unknown): Response {
@@ -161,7 +161,7 @@ export class AuditLoggingMiddleware {
         const isSuccess = statusCode === 200;
 
         // Try to get user ID from response
-        let userId = 0;
+        let userId: number | null = null;
         if (isSuccess) {
           try {
             const responseBody = typeof body === 'string' ? JSON.parse(body) : body;
@@ -185,7 +185,7 @@ export class AuditLoggingMiddleware {
           });
       }
 
-      return originalSend.call(this, body);
+      return originalSend.call(res, body);
     };
 
     next();
@@ -199,7 +199,7 @@ export class AuditLoggingMiddleware {
     res: Response,
     next: NextFunction
   ): Promise<void> => {
-    const originalSend = res.send;
+    const originalSend = res.send.bind(res);
     const auditService = this.auditLogService;
 
     res.send = function (body: unknown): Response {
@@ -209,7 +209,7 @@ export class AuditLoggingMiddleware {
       if (req.path === '/api/v1/auth/login' && req.method === 'POST' && statusCode !== 200) {
         auditService
           .logLogin(
-            0, // Unknown user ID
+            null, // Use null instead of 0 for unknown user ID
             false,
             'Authentication failed',
             req.ip,
@@ -220,7 +220,7 @@ export class AuditLoggingMiddleware {
           });
       }
 
-      return originalSend.call(this, body);
+      return originalSend.call(res, body);
     };
 
     next();
@@ -230,7 +230,7 @@ export class AuditLoggingMiddleware {
    * Middleware to log session events
    */
   logSessionEvents = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-    const originalSend = res.send;
+    const originalSend = res.send.bind(res);
     const auditService = this.auditLogService;
 
     res.send = function (body: unknown): Response {
@@ -254,9 +254,9 @@ export class AuditLoggingMiddleware {
                 user_id: parseInt(authReq.user.id, 10),
                 action: 'sessions_revoked',
                 subject_type: 'session',
-                details: {
-                  resource_type: 'session',
-                  resource_id: parseInt(authReq.user.id, 10),
+                subject_id: parseInt(authReq.user.id, 10),
+                description: `Sessions revoked: ${revokedCount} sessions`,
+                new_values: {
                   revoked_count: revokedCount,
                   revocation_type: 'all_sessions',
                   success: true,
@@ -273,7 +273,7 @@ export class AuditLoggingMiddleware {
         }
       }
 
-      return originalSend.call(this, body);
+      return originalSend.call(res, body);
     };
 
     next();
@@ -283,7 +283,7 @@ export class AuditLoggingMiddleware {
    * Middleware to log security events
    */
   logSecurityEvents = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-    const originalSend = res.send;
+    const originalSend = res.send.bind(res);
     const auditService = this.auditLogService;
 
     res.send = function (body: unknown): Response {
@@ -292,16 +292,16 @@ export class AuditLoggingMiddleware {
       // Log unauthorized access attempts
       if (statusCode === 401 || statusCode === 403) {
         const authReq = req as AuthenticatedRequest;
-        const userId = authReq.user ? parseInt(authReq.user.id, 10) : 0;
+        const userId = authReq.user ? parseInt(authReq.user.id, 10) : null;
 
         auditService
           .createAuditLog({
             user_id: userId,
             action: statusCode === 401 ? 'unauthorized_access' : 'forbidden_access',
             subject_type: 'endpoint',
-            details: {
-              resource_type: 'endpoint',
-              resource_id: 0, // Use 0 instead of null for endpoint
+            subject_id: 0, // Use 0 for endpoint
+            description: `${statusCode === 401 ? 'Unauthorized' : 'Forbidden'} access to ${req.path}`,
+            new_values: {
               path: req.path,
               method: req.method,
               status_code: statusCode,
@@ -316,7 +316,7 @@ export class AuditLoggingMiddleware {
           });
       }
 
-      return originalSend.call(this, body);
+      return originalSend.call(res, body);
     };
 
     next();

@@ -30,10 +30,10 @@ export interface AuditLog extends DatabaseRecord {
  * Create audit log request
  */
 export interface CreateAuditLogRequest {
-  user_id?: number;
+  user_id?: number | null;
   action: string;
   subject_type: string;
-  subject_id?: number;
+  subject_id?: number | null;
   description?: string;
   old_values?: Record<string, any>;
   new_values?: Record<string, any>;
