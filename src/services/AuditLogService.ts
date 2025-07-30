@@ -57,24 +57,23 @@ export class AuditLogService {
         request as unknown as Record<string, unknown>
       );
 
-      // Create audit log entry
+      // Create audit log entry (match activity_logs schema exactly)
       const auditLog: Omit<AuditLog, 'id' | 'created_at' | 'updated_at'> = {
         user_id: sanitizedRequest.user_id ?? null,
         action: sanitizedRequest.action,
-        resource_type: sanitizedRequest.resource_type,
-        resource_id: sanitizedRequest.resource_id ?? null,
-        details: sanitizedRequest.details ?? {},
+        subject_type: sanitizedRequest.subject_type,
+        subject_id: sanitizedRequest.subject_id ?? null,
+        description: sanitizedRequest.description ?? '',
+        old_values: sanitizedRequest.old_values ?? null,
+        new_values: sanitizedRequest.new_values ?? null,
         ip_address: sanitizedRequest.ip_address ?? null,
         user_agent: sanitizedRequest.user_agent ?? null,
-        session_id: sanitizedRequest.session_id ?? null,
-        success: sanitizedRequest.success ?? true,
-        error_message: sanitizedRequest.error_message ?? null,
       };
 
       // Save to database
       const savedLog = await this.auditLogModel.create(auditLog);
 
-      logger.info(`Audit log created: ${savedLog.action} for ${savedLog.resource_type}`);
+      logger.info(`Audit log created: ${savedLog.action} for ${savedLog.subject_type}`);
 
       return savedLog;
     } catch (error) {
@@ -238,24 +237,12 @@ export class AuditLogService {
     const request: CreateAuditLogRequest = {
       user_id: userId,
       action: 'user_registered',
-      resource_type: 'user',
-      resource_id: userId,
-      details: {
-        email: userData.email,
-        name: userData.name,
-        role_id: userData.role_id,
-      },
-      success: true,
+      subject_type: 'user',
+      subject_id: userId,
+      description: 'User registration',
     };
-
-    if (ipAddress) {
-      request.ip_address = ipAddress;
-    }
-
-    if (userAgent) {
-      request.user_agent = userAgent;
-    }
-
+    if (ipAddress) request.ip_address = ipAddress;
+    if (userAgent) request.user_agent = userAgent;
     await this.createAuditLog(request);
   }
 
@@ -263,7 +250,7 @@ export class AuditLogService {
    * Log email verification event
    */
   async logEmailVerification(
-    userId: number,
+    userId: number | null,
     success: boolean,
     error?: string,
     ipAddress?: string
@@ -271,12 +258,9 @@ export class AuditLogService {
     const request: CreateAuditLogRequest = {
       user_id: userId,
       action: success ? 'email_verified' : 'email_verification_failed',
-      resource_type: 'email_verification_token',
-      resource_id: userId,
-      details: {
-        verification_type: 'email_verification',
-      },
-      success,
+      subject_type: 'email_verification_token',
+      subject_id: userId,
+      description: success ? 'Email verification successful' : 'Email verification failed',
     };
 
     if (ipAddress) {
@@ -284,7 +268,7 @@ export class AuditLogService {
     }
 
     if (error) {
-      request.error_message = error;
+      request.description += `: ${error}`;
     }
 
     await this.createAuditLog(request);
@@ -302,16 +286,13 @@ export class AuditLogService {
     const request: CreateAuditLogRequest = {
       user_id: userId,
       action: 'profile_updated',
-      resource_type: 'profile',
-      resource_id: userId,
-      details: {
-        updated_fields: Object.keys(updateData),
-      },
-      success,
+      subject_type: 'profile',
+      subject_id: userId,
+      description: 'Profile updated',
     };
 
     if (error) {
-      request.error_message = error;
+      request.description += `: ${error}`;
     }
 
     await this.createAuditLog(request);
@@ -324,16 +305,13 @@ export class AuditLogService {
     const request: CreateAuditLogRequest = {
       user_id: userId,
       action: 'password_changed',
-      resource_type: 'password',
-      resource_id: userId,
-      details: {
-        change_type: 'password_update',
-      },
-      success,
+      subject_type: 'password',
+      subject_id: userId,
+      description: 'Password changed',
     };
 
     if (error) {
-      request.error_message = error;
+      request.description += `: ${error}`;
     }
 
     await this.createAuditLog(request);
@@ -343,35 +321,23 @@ export class AuditLogService {
    * Log login event
    */
   async logLogin(
-    userId: number,
+    userId: number | null,
     success: boolean,
     error?: string,
     ipAddress?: string,
     userAgent?: string
   ): Promise<void> {
+    let description = success ? 'User login' : 'Login failed';
+    if (error) description += `: ${error}`;
     const request: CreateAuditLogRequest = {
       user_id: userId,
       action: success ? 'user_login' : 'login_failed',
-      resource_type: 'user',
-      resource_id: userId,
-      details: {
-        login_method: 'email_password',
-      },
-      success,
+      subject_type: 'user',
+      subject_id: userId,
+      description,
     };
-
-    if (ipAddress) {
-      request.ip_address = ipAddress;
-    }
-
-    if (userAgent) {
-      request.user_agent = userAgent;
-    }
-
-    if (error) {
-      request.error_message = error;
-    }
-
+    if (ipAddress) request.ip_address = ipAddress;
+    if (userAgent) request.user_agent = userAgent;
     await this.createAuditLog(request);
   }
 
@@ -382,12 +348,9 @@ export class AuditLogService {
     const request: CreateAuditLogRequest = {
       user_id: userId,
       action: 'user_logout',
-      resource_type: 'user',
-      resource_id: userId,
-      details: {
-        logout_type: 'manual',
-      },
-      success: true,
+      subject_type: 'user',
+      subject_id: userId,
+      description: 'User logout',
     };
 
     if (ipAddress) {

@@ -2,10 +2,16 @@ import { LoginRequest, ValidationError, ValidationResult } from '@/types/auth';
 
 export class LoginValidator {
   /**
-   * Validate login request
+   * Validate login request, optionally with lockout error
    */
-  static validateLoginRequest(data: any): ValidationResult {
+  static validateLoginRequest(data: any, lockoutError?: string): ValidationResult {
     const errors: ValidationError[] = [];
+
+    // Lockout error takes precedence
+    if (lockoutError) {
+      errors.push({ field: 'general', message: lockoutError });
+      return { isValid: false, errors };
+    }
 
     // Check if all required fields are present
     if (!data.email) {

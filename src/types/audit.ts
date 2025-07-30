@@ -15,30 +15,31 @@ import { DatabaseRecord } from './index';
 export interface AuditLog extends DatabaseRecord {
   user_id: number | null;
   action: string;
-  resource_type: string;
-  resource_id: number | null;
-  details: Record<string, any>;
+  subject_type: string;
+  subject_id: number | null;
+  description: string;
+  old_values?: Record<string, any> | null;
+  new_values?: Record<string, any> | null;
   ip_address: string | null;
   user_agent: string | null;
-  session_id: string | null;
-  success: boolean;
-  error_message: string | null;
+  created_at: Date;
+  updated_at: Date;
 }
 
 /**
  * Create audit log request
  */
 export interface CreateAuditLogRequest {
-  user_id?: number;
+  user_id?: number | null;
   action: string;
-  resource_type: string;
-  resource_id?: number;
-  details?: Record<string, any>;
+  subject_type: string;
+  subject_id?: number | null;
+  description?: string;
+  old_values?: Record<string, any>;
+  new_values?: Record<string, any>;
   ip_address?: string;
   user_agent?: string;
-  session_id?: string;
-  success?: boolean;
-  error_message?: string;
+  details?: Record<string, unknown>;
 }
 
 /**
@@ -47,8 +48,8 @@ export interface CreateAuditLogRequest {
 export interface AuditLogFilterOptions {
   user_id?: number;
   action?: string;
-  resource_type?: string;
-  resource_id?: number;
+  subject_type?: string;
+  subject_id?: number;
   success?: boolean;
   start_date?: Date;
   end_date?: Date;

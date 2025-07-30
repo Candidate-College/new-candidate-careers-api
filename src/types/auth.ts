@@ -49,3 +49,12 @@ export interface ValidationResult {
   isValid: boolean;
   errors: ValidationError[];
 }
+
+/**
+ * In-memory login lockout tracking info
+ */
+export interface LoginLockoutInfo {
+  failedCount: number;
+  lastFailed: number; // timestamp (ms)
+  lockedUntil?: number; // timestamp (ms), if locked
+}

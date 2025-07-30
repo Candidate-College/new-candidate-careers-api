@@ -36,7 +36,7 @@ export class AuditValidator {
     'permission_revoked',
   ];
 
-  private static readonly VALID_RESOURCE_TYPES = [
+  private static readonly VALID_SUBJECT_TYPES = [
     'user',
     'email_verification_token',
     'session',
@@ -94,8 +94,8 @@ export class AuditValidator {
       errors.push('Action is required');
     }
 
-    if (!data.resource_type) {
-      errors.push('Resource type is required');
+    if (!data.subject_type) {
+      errors.push('Subject type is required');
     }
 
     return { errors };
@@ -113,8 +113,8 @@ export class AuditValidator {
       errors.push(`Invalid action. Must be one of: ${this.VALID_ACTIONS.join(', ')}`);
     }
 
-    if (data.resource_type && !this.VALID_RESOURCE_TYPES.includes(data.resource_type as string)) {
-      errors.push(`Invalid resource type. Must be one of: ${this.VALID_RESOURCE_TYPES.join(', ')}`);
+    if (data.subject_type && !this.VALID_SUBJECT_TYPES.includes(data.subject_type as string)) {
+      errors.push(`Invalid subject type. Must be one of: ${this.VALID_SUBJECT_TYPES.join(', ')}`);
     }
 
     return { errors };
@@ -132,9 +132,9 @@ export class AuditValidator {
       }
     }
 
-    if (data.resource_id !== undefined) {
-      if (!Number.isInteger(data.resource_id) || (data.resource_id as number) < 0) {
-        errors.push('Resource ID must be a non-negative integer');
+    if (data.subject_id !== undefined) {
+      if (!Number.isInteger(data.subject_id) || (data.subject_id as number) < 0) {
+        errors.push('Subject ID must be a non-negative integer');
       }
     }
 
@@ -198,10 +198,14 @@ export class AuditValidator {
    * Check if IP address is valid
    */
   private static isValidIpAddress(ip: string): boolean {
+    // Accept common localhost representations for development and testing
+    // IPv6 localhost shorthand (::1) and IPv4 localhost (127.0.0.1) are commonly used
+    // in development environments and should be considered valid
+    if (ip === '::1' || ip === '127.0.0.1') return true;
+
     // Simplified IP validation for IPv4 and IPv6
     const ipv4Regex = /^(\d{1,3}\.){3}\d{1,3}$/;
     const ipv6Regex = /^([0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}$/;
-
     if (ipv4Regex.test(ip)) {
       const parts = ip.split('.');
       return parts.every(part => {
@@ -209,75 +213,87 @@ export class AuditValidator {
         return num >= 0 && num <= 255;
       });
     }
-
     return ipv6Regex.test(ip);
+  }
+
+  private static validateUserId(user_id: unknown): string[] {
+    if (user_id !== undefined && (!Number.isInteger(user_id) || (user_id as number) < 0)) {
+      return ['User ID must be a non-negative integer'];
+    }
+    return [];
+  }
+
+  private static validateAction(action: unknown): string[] {
+    if (action && !this.VALID_ACTIONS.includes(action as string)) {
+      return [`Invalid action. Must be one of: ${this.VALID_ACTIONS.join(', ')}`];
+    }
+    return [];
+  }
+
+  private static validateSubjectType(subject_type: unknown): string[] {
+    if (subject_type && !this.VALID_SUBJECT_TYPES.includes(subject_type as string)) {
+      return [`Invalid subject type. Must be one of: ${this.VALID_SUBJECT_TYPES.join(', ')}`];
+    }
+    return [];
+  }
+
+  private static validateSubjectId(subject_id: unknown): string[] {
+    if (subject_id !== undefined && (!Number.isInteger(subject_id) || (subject_id as number) < 0)) {
+      return ['Subject ID must be a non-negative integer'];
+    }
+    return [];
+  }
+
+  private static validateSuccess(success: unknown): string[] {
+    if (success !== undefined && typeof success !== 'boolean') {
+      return ['Success field must be a boolean'];
+    }
+    return [];
+  }
+
+  private static validateDate(date: unknown, label: string): string[] {
+    if (date && !(date instanceof Date) && isNaN(Date.parse(date as string))) {
+      return [`${label} must be a valid date`];
+    }
+    return [];
+  }
+
+  private static validateDateRange(start_date: unknown, end_date: unknown): string[] {
+    if (start_date && end_date) {
+      const startDate = new Date(start_date as string);
+      const endDate = new Date(end_date as string);
+      if (startDate > endDate) {
+        return ['Start date must be before end date'];
+      }
+    }
+    return [];
+  }
+
+  private static validateIp(ip_address: unknown): string[] {
+    if (ip_address) {
+      const ip = ip_address as string;
+      if (!this.isValidIpAddress(ip)) {
+        return ['Invalid IP address format'];
+      }
+    }
+    return [];
   }
 
   /**
    * Validate audit log filter options
    */
   static validateFilterOptions(data: Record<string, unknown>): AuditValidationResult {
-    const errors: string[] = [];
-
-    // Validate user_id if provided
-    if (data.user_id !== undefined) {
-      if (!Number.isInteger(data.user_id) || (data.user_id as number) < 0) {
-        errors.push('User ID must be a non-negative integer');
-      }
-    }
-
-    // Validate action if provided
-    if (data.action && !this.VALID_ACTIONS.includes(data.action as string)) {
-      errors.push(`Invalid action. Must be one of: ${this.VALID_ACTIONS.join(', ')}`);
-    }
-
-    // Validate resource_type if provided
-    if (data.resource_type && !this.VALID_RESOURCE_TYPES.includes(data.resource_type as string)) {
-      errors.push(`Invalid resource type. Must be one of: ${this.VALID_RESOURCE_TYPES.join(', ')}`);
-    }
-
-    // Validate resource_id if provided
-    if (data.resource_id !== undefined) {
-      if (!Number.isInteger(data.resource_id) || (data.resource_id as number) < 0) {
-        errors.push('Resource ID must be a non-negative integer');
-      }
-    }
-
-    // Validate success if provided
-    if (data.success !== undefined && typeof data.success !== 'boolean') {
-      errors.push('Success field must be a boolean');
-    }
-
-    // Validate date range if provided
-    if (data.start_date) {
-      if (!(data.start_date instanceof Date) && isNaN(Date.parse(data.start_date as string))) {
-        errors.push('Start date must be a valid date');
-      }
-    }
-
-    if (data.end_date) {
-      if (!(data.end_date instanceof Date) && isNaN(Date.parse(data.end_date as string))) {
-        errors.push('End date must be a valid date');
-      }
-    }
-
-    // Validate date range logic
-    if (data.start_date && data.end_date) {
-      const startDate = new Date(data.start_date as string);
-      const endDate = new Date(data.end_date as string);
-      if (startDate > endDate) {
-        errors.push('Start date must be before end date');
-      }
-    }
-
-    // Validate IP address format if provided
-    if (data.ip_address) {
-      const ipAddress = data.ip_address as string;
-      if (!this.isValidIpAddress(ipAddress)) {
-        errors.push('Invalid IP address format');
-      }
-    }
-
+    const errors: string[] = [
+      ...this.validateUserId(data.user_id),
+      ...this.validateAction(data.action),
+      ...this.validateSubjectType(data.subject_type),
+      ...this.validateSubjectId(data.subject_id),
+      ...this.validateSuccess(data.success),
+      ...this.validateDate(data.start_date, 'Start date'),
+      ...this.validateDate(data.end_date, 'End date'),
+      ...this.validateDateRange(data.start_date, data.end_date),
+      ...this.validateIp(data.ip_address),
+    ];
     return {
       isValid: errors.length === 0,
       errors,
@@ -312,7 +328,7 @@ export class AuditValidator {
       const validSortFields = [
         'created_at',
         'action',
-        'resource_type',
+        'subject_type',
         'user_id',
         'success',
         'ip_address',
@@ -341,62 +357,45 @@ export class AuditValidator {
     };
   }
 
+  private static validateExportFormat(format: unknown): string[] {
+    if (!format) {
+      return ['Export format is required'];
+    }
+    if (!this.VALID_EXPORT_FORMATS.includes(format as string)) {
+      return [`Invalid export format. Must be one of: ${this.VALID_EXPORT_FORMATS.join(', ')}`];
+    }
+    return [];
+  }
+
+  private static validateIncludeDetails(include_details: unknown): string[] {
+    if (include_details !== undefined && typeof include_details !== 'boolean') {
+      return ['Include details must be a boolean'];
+    }
+    return [];
+  }
+
+  private static validateExportFilters(filters: unknown): string[] {
+    if (filters) {
+      const filterValidation = this.validateFilterOptions(filters as Record<string, unknown>);
+      if (!filterValidation.isValid) {
+        return filterValidation.errors;
+      }
+    }
+    return [];
+  }
+
   /**
    * Validate audit log export options
    */
   static validateExportOptions(data: Record<string, unknown>): AuditValidationResult {
-    const errors: string[] = [];
-
-    // Check required fields
-    if (!data.format) {
-      errors.push('Export format is required');
-    }
-
-    // If there are missing required fields, return early
-    if (errors.length > 0) {
-      return { isValid: false, errors };
-    }
-
-    // Validate format
-    if (data.format && !this.VALID_EXPORT_FORMATS.includes(data.format as string)) {
-      errors.push(`Invalid export format. Must be one of: ${this.VALID_EXPORT_FORMATS.join(', ')}`);
-    }
-
-    // Validate include_details
-    if (data.include_details !== undefined && typeof data.include_details !== 'boolean') {
-      errors.push('Include details must be a boolean');
-    }
-
-    // Validate filters if provided
-    if (data.filters) {
-      const filterValidation = this.validateFilterOptions(data.filters as Record<string, unknown>);
-      if (!filterValidation.isValid) {
-        errors.push(...filterValidation.errors);
-      }
-    }
-
-    // Validate date range if provided
-    if (data.start_date) {
-      if (!(data.start_date instanceof Date) && isNaN(Date.parse(data.start_date as string))) {
-        errors.push('Start date must be a valid date');
-      }
-    }
-
-    if (data.end_date) {
-      if (!(data.end_date instanceof Date) && isNaN(Date.parse(data.end_date as string))) {
-        errors.push('End date must be a valid date');
-      }
-    }
-
-    // Validate date range logic
-    if (data.start_date && data.end_date) {
-      const startDate = new Date(data.start_date as string);
-      const endDate = new Date(data.end_date as string);
-      if (startDate > endDate) {
-        errors.push('Start date must be before end date');
-      }
-    }
-
+    const errors: string[] = [
+      ...this.validateExportFormat(data.format),
+      ...this.validateIncludeDetails(data.include_details),
+      ...this.validateExportFilters(data.filters),
+      ...this.validateDate(data.start_date, 'Start date'),
+      ...this.validateDate(data.end_date, 'End date'),
+      ...this.validateDateRange(data.start_date, data.end_date),
+    ];
     return {
       isValid: errors.length === 0,
       errors,
@@ -409,17 +408,24 @@ export class AuditValidator {
   static sanitizeCreateAuditLogData(data: Record<string, unknown>): CreateAuditLogRequest {
     const result: CreateAuditLogRequest = {
       action: (data.action as string)?.trim() || (data.action as string),
-      resource_type: (data.resource_type as string)?.trim() || (data.resource_type as string),
-      details: (data.details as Record<string, unknown>) || {},
-      success: data.success !== undefined ? Boolean(data.success) : true,
+      subject_type: (data.subject_type as string)?.trim() || (data.subject_type as string),
+      description: (data.description as string)?.trim() || '',
     };
 
     if (data.user_id !== undefined) {
       result.user_id = parseInt(data.user_id as string, 10);
     }
 
-    if (data.resource_id !== undefined) {
-      result.resource_id = parseInt(data.resource_id as string, 10);
+    if (data.subject_id !== undefined) {
+      result.subject_id = parseInt(data.subject_id as string, 10);
+    }
+
+    if (data.old_values !== undefined) {
+      result.old_values = data.old_values as Record<string, unknown>;
+    }
+
+    if (data.new_values !== undefined) {
+      result.new_values = data.new_values as Record<string, unknown>;
     }
 
     if (data.ip_address) {
@@ -428,14 +434,6 @@ export class AuditValidator {
 
     if (data.user_agent) {
       result.user_agent = (data.user_agent as string)?.trim();
-    }
-
-    if (data.session_id) {
-      result.session_id = (data.session_id as string)?.trim();
-    }
-
-    if (data.error_message) {
-      result.error_message = (data.error_message as string)?.trim();
     }
 
     return result;
@@ -455,12 +453,12 @@ export class AuditValidator {
       result.action = (data.action as string)?.trim();
     }
 
-    if (data.resource_type) {
-      result.resource_type = (data.resource_type as string)?.trim();
+    if (data.subject_type) {
+      result.subject_type = (data.subject_type as string)?.trim();
     }
 
-    if (data.resource_id !== undefined) {
-      result.resource_id = parseInt(data.resource_id as string, 10);
+    if (data.subject_id !== undefined) {
+      result.subject_id = parseInt(data.subject_id as string, 10);
     }
 
     if (data.success !== undefined) {
