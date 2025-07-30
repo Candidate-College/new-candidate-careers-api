@@ -45,16 +45,6 @@ export class AuthService implements AuthServiceInterface {
         );
       }
 
-      // Check if username already exists
-      const existingUserByUsername = await this.userService.getUserByUsername(userData.username);
-      if (existingUserByUsername) {
-        throw createResourceConflictError(
-          'Username already exists',
-          ErrorCodes.USERNAME_ALREADY_EXISTS,
-          'A user with this username is already registered'
-        );
-      }
-
       // Create user using UserService
       const newUser = await this.userService.createUser({
         email: userData.email,
