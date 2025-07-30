@@ -20,6 +20,7 @@ import { EmailVerificationValidator } from '@/validators/emailVerificationValida
 import { logger } from '@/utils/logger';
 import { generateUUID } from '@/utils/uuid';
 import { mailer } from '@/mails';
+import { UserStatus } from '@/types/userRegistration';
 
 export class EmailVerificationService {
   private readonly tokenModel: EmailVerificationTokenModel;
@@ -228,9 +229,19 @@ export class EmailVerificationService {
       // Update user email verification status
       const userId =
         typeof token.user_id === 'string' ? parseInt(token.user_id, 10) : token.user_id;
+      if (!Number.isInteger(userId) || userId <= 0 || isNaN(userId)) {
+        logger.error(`Invalid user ID for email verification: ${token.user_id}`);
+        return {
+          success: false,
+          error: 'Invalid user ID',
+          token: null,
+          user_id: null,
+          message: 'User not found',
+        };
+      }
       const updatedUser = await this.userModel.updateUser(userId, {
         email_verified_at: new Date(),
-        status: 'active',
+        status: UserStatus.ACTIVE,
       });
 
       if (!updatedUser) {

@@ -184,7 +184,7 @@ export class EmailVerificationValidator {
 
     // Validate user_id - handle both string and number types from database
     const userId = typeof token.user_id === 'string' ? parseInt(token.user_id, 10) : token.user_id;
-    if (!Number.isInteger(userId) || userId <= 0) {
+    if (!Number.isInteger(userId) || userId <= 0 || isNaN(userId)) {
       errors.push({ field: 'user_id', message: 'Invalid user ID' });
     }
 
@@ -205,12 +205,18 @@ export class EmailVerificationValidator {
    * Sanitize create token request data
    */
   static sanitizeCreateTokenData(data: any): CreateEmailVerificationTokenRequest {
+    const parsedUserId = parseInt(data.user_id, 10);
+    if (isNaN(parsedUserId)) {
+      throw new Error('Invalid user_id: must be a number');
+    }
+    const parsedExpires = parseInt(data.expires_in_hours, 10);
+    const expires_in_hours = !isNaN(parsedExpires) ? parsedExpires : 24; // Default to 24 hours
     return {
-      user_id: parseInt(data.user_id, 10) || data.user_id,
+      user_id: parsedUserId,
       type: data.type || 'email_verification',
       ip_address: data.ip_address?.trim() || data.ip_address,
       user_agent: data.user_agent?.trim() || data.user_agent,
-      expires_in_hours: parseInt(data.expires_in_hours, 10) || 24, // Default to 24 hours
+      expires_in_hours,
     };
   }
 

@@ -27,10 +27,12 @@ import { EmailVerificationService } from '@/services/EmailVerificationService';
  * @module src/controllers/UserController
  */
 export class UserController {
-  private userService: UserService;
+  private readonly userService: UserService;
+  private readonly emailVerificationService: EmailVerificationService;
 
   constructor() {
     this.userService = new UserService();
+    this.emailVerificationService = new EmailVerificationService();
   }
 
   /**
@@ -64,9 +66,7 @@ export class UserController {
       try {
         logger.info(`Sending verification email for user ${result.user.id}`);
 
-        const emailVerificationService = new EmailVerificationService();
-
-        await emailVerificationService.sendVerificationEmail(
+        await this.emailVerificationService.sendVerificationEmail(
           result.user.id,
           result.verificationToken,
           result.user.email,

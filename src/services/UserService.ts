@@ -16,7 +16,10 @@ import { EmailVerificationService } from './EmailVerificationService';
 import { AuditLogService } from './AuditLogService';
 import { logger } from '@/utils/logger';
 import { SUPER_ADMIN_ROLE_ID } from '@/types/roles';
-import { CreateEmailVerificationTokenRequest } from '@/types/emailVerification';
+import {
+  CreateEmailVerificationTokenRequest,
+  EmailVerificationTokenType,
+} from '@/types/emailVerification';
 
 export class UserService {
   private readonly userModel: UserModel;
@@ -184,7 +187,7 @@ export class UserService {
       // Create email verification token
       const tokenData: CreateEmailVerificationTokenRequest = {
         user_id: newUser.id,
-        type: 'email_verification',
+        type: EmailVerificationTokenType.EMAIL_VERIFICATION,
       };
 
       // Only add IP address and user agent if they have valid values
@@ -456,7 +459,7 @@ export class UserService {
       // Create new verification token
       const tokenRequest: any = {
         user_id: user.id,
-        type: 'email_verification',
+        type: EmailVerificationTokenType.EMAIL_VERIFICATION,
       };
 
       if (ipAddress) {

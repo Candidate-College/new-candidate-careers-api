@@ -113,3 +113,8 @@ export interface EmailVerificationValidationError {
   field: string;
   message: string;
 }
+
+export enum EmailVerificationTokenType {
+  EMAIL_VERIFICATION = 'email_verification',
+  PASSWORD_RESET = 'password_reset',
+}

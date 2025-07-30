@@ -20,6 +20,7 @@ import { User } from '@/types';
 import { RegisterRequest, LoginLockoutInfo } from '@/types/auth';
 import { createResourceConflictError, createError } from '@/utils/errors';
 import { ErrorCodes } from '@/types/errors';
+import { USER_ROLE_ID } from '@/types/roles';
 
 export class AuthService implements AuthServiceInterface {
   private readonly userService: UserService;
@@ -61,7 +62,7 @@ export class AuthService implements AuthServiceInterface {
         email: userData.email,
         name: `${userData.first_name} ${userData.last_name}`,
         password: userData.password,
-        role_id: 2, // Default role for regular users
+        role_id: USER_ROLE_ID, // Default role for regular users
       });
 
       if (!registrationResult.success) {
@@ -112,7 +113,7 @@ export class AuthService implements AuthServiceInterface {
       await this.auditLogService.logUserRegistration(registrationResult.user!.id, {
         email: userData.email,
         name: `${userData.first_name} ${userData.last_name}`,
-        role_id: 2,
+        role_id: USER_ROLE_ID,
       });
 
       logger.info(`User ${registrationResult.user!.id} registered successfully`);
