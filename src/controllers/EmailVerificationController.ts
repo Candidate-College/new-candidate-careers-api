@@ -44,12 +44,17 @@ export class EmailVerificationController {
 
     const verificationData: EmailVerificationRequest = req.body;
 
+    logger.info(
+      `Attempting to verify email with token: ${verificationData.token.substring(0, 8)}...`
+    );
+
     const result = await this.emailVerificationService.verifyToken({
       token: verificationData.token,
       email: verificationData.email,
     });
 
     if (!result.success) {
+      logger.warn(`Email verification failed: ${result.error}`);
       const errorResponse = EmailVerificationResource.formatVerificationErrorApiResponse(
         result.error || 'Email verification failed',
         400

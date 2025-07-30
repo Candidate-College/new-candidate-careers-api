@@ -182,8 +182,9 @@ export class EmailVerificationValidator {
       errors.push({ field: 'token', message: 'Invalid token format' });
     }
 
-    // Validate user_id
-    if (!Number.isInteger(token.user_id) || token.user_id <= 0) {
+    // Validate user_id - handle both string and number types from database
+    const userId = typeof token.user_id === 'string' ? parseInt(token.user_id, 10) : token.user_id;
+    if (!Number.isInteger(userId) || userId <= 0) {
       errors.push({ field: 'user_id', message: 'Invalid user ID' });
     }
 
