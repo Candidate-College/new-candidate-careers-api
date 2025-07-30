@@ -8,7 +8,7 @@ import {
 import { UserRegistrationRequest, UserProfileUpdateRequest } from '@/types/userRegistration';
 import { createPaginatedResponse, calculatePaginationMeta } from '@/utils/response';
 import { createError } from '@/middleware/errorHandler';
-import { UserModel } from '@/models';
+import { UserModel, UserWithRole } from '@/models';
 import { PasswordUtils } from '@/utils/password';
 import { UserRegistrationValidator } from '@/validators/userRegistrationValidator';
 import { PasswordValidator } from '@/validators/passwordValidator';
@@ -16,6 +16,10 @@ import { EmailVerificationService } from './EmailVerificationService';
 import { AuditLogService } from './AuditLogService';
 import { logger } from '@/utils/logger';
 import { SUPER_ADMIN_ROLE_ID } from '@/types/roles';
+import {
+  CreateEmailVerificationTokenRequest,
+  EmailVerificationTokenType,
+} from '@/types/emailVerification';
 
 export class UserService {
   private readonly userModel: UserModel;
@@ -84,10 +88,20 @@ export class UserService {
     return await this.userModel.findByEmail(email);
   }
 
+  async getUserByEmailWithRole(email: string): Promise<UserWithRole | null> {
+    return await this.userModel.findByEmailWithRole(email);
+  }
+
   async getUserByEmailWithPassword(
     email: string
   ): Promise<(User & { password_hash: string }) | null> {
     return await this.userModel.findByEmailWithPassword(email);
+  }
+
+  async getUserByEmailWithPasswordAndRole(
+    email: string
+  ): Promise<(UserWithRole & { password_hash: string }) | null> {
+    return await this.userModel.findByEmailWithPasswordAndRole(email);
   }
 
   // Note: Username functionality has been removed as per current User model
@@ -171,12 +185,20 @@ export class UserService {
       });
 
       // Create email verification token
-      const tokenResult = await this.emailVerificationService.createToken({
+      const tokenData: CreateEmailVerificationTokenRequest = {
         user_id: newUser.id,
-        type: 'email_verification',
-        ip_address: ipAddress || '',
-        user_agent: userAgent || '',
-      });
+        type: EmailVerificationTokenType.EMAIL_VERIFICATION,
+      };
+
+      // Only add IP address and user agent if they have valid values
+      if (ipAddress && ipAddress.trim() !== '') {
+        tokenData.ip_address = ipAddress;
+      }
+      if (userAgent && userAgent.trim() !== '') {
+        tokenData.user_agent = userAgent;
+      }
+
+      const tokenResult = await this.emailVerificationService.createToken(tokenData);
 
       // Log registration event
       await this.auditLogService.logUserRegistration(
@@ -437,7 +459,7 @@ export class UserService {
       // Create new verification token
       const tokenRequest: any = {
         user_id: user.id,
-        type: 'email_verification',
+        type: EmailVerificationTokenType.EMAIL_VERIFICATION,
       };
 
       if (ipAddress) {

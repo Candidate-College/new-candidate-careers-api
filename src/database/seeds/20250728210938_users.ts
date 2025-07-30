@@ -19,7 +19,6 @@ export async function seed(knex: Knex): Promise<void> {
   // Inserts seed entries
   await knex('users').insert([
     {
-      id: 1,
       uuid: userUUIDs[0],
       email: 'admin@ccp.com',
       password: hashedPassword,
@@ -30,7 +29,6 @@ export async function seed(knex: Knex): Promise<void> {
       updated_at: baseTimestamp,
     },
     {
-      id: 2,
       uuid: userUUIDs[1],
       email: 'head.hr@ccp.com',
       password: hashedPassword,
@@ -41,7 +39,6 @@ export async function seed(knex: Knex): Promise<void> {
       updated_at: baseTimestamp,
     },
     {
-      id: 3,
       uuid: userUUIDs[2],
       email: 'siti.nurhaliza@ccp.com',
       password: hashedPassword,
@@ -52,7 +49,6 @@ export async function seed(knex: Knex): Promise<void> {
       updated_at: baseTimestamp,
     },
     {
-      id: 4,
       uuid: userUUIDs[3],
       email: 'agus.wijaya@ccp.com',
       password: hashedPassword,
@@ -63,7 +59,6 @@ export async function seed(knex: Knex): Promise<void> {
       updated_at: baseTimestamp,
     },
     {
-      id: 5,
       uuid: userUUIDs[4],
       email: 'dewi.lestari@ccp.com',
       password: hashedPassword,
@@ -74,7 +69,6 @@ export async function seed(knex: Knex): Promise<void> {
       updated_at: baseTimestamp,
     },
     {
-      id: 6,
       uuid: userUUIDs[5],
       email: 'eko.prasetyo@ccp.com',
       password: hashedPassword,
@@ -85,7 +79,6 @@ export async function seed(knex: Knex): Promise<void> {
       updated_at: baseTimestamp,
     },
     {
-      id: 7,
       uuid: userUUIDs[6],
       email: 'fitri.rahmawati@ccp.com',
       password: hashedPassword,
@@ -96,7 +89,6 @@ export async function seed(knex: Knex): Promise<void> {
       updated_at: baseTimestamp,
     },
     {
-      id: 8,
       uuid: userUUIDs[7],
       email: 'gunawan.amir@ccp.com',
       password: hashedPassword,
@@ -107,7 +99,6 @@ export async function seed(knex: Knex): Promise<void> {
       updated_at: baseTimestamp,
     },
     {
-      id: 9,
       uuid: userUUIDs[8],
       email: 'herman.syah@ccp.com',
       password: hashedPassword,
@@ -118,11 +109,10 @@ export async function seed(knex: Knex): Promise<void> {
       updated_at: baseTimestamp,
     },
     {
-      id: 10,
       uuid: userUUIDs[9],
-      email: 'ida.ayu@ccp.com',
+      email: 'indah.sari@ccp.com',
       password: hashedPassword,
-      name: 'Ida Ayu',
+      name: 'Indah Sari',
       role_id: 3, // hr_staff
       status: 'active',
       created_at: baseTimestamp,
