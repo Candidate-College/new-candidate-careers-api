@@ -15,13 +15,20 @@ import {
   AuthServiceInterface,
 } from '@/types/jwt';
 import { User } from '@/types';
-import { RegisterRequest } from '@/types/auth';
+import { RegisterRequest, LoginLockoutInfo } from '@/types/auth';
 import { createResourceConflictError, createError } from '@/utils/errors';
 import { ErrorCodes } from '@/types/errors';
 
 export class AuthService implements AuthServiceInterface {
   private readonly userService: UserService;
   private readonly auditLogService: AuditLogService;
+
+  /**
+   * In-memory lockout map: email -> lockout info
+   */
+  private static readonly lockoutMap: Map<string, LoginLockoutInfo> = new Map();
+  private static readonly MAX_FAILED = 5;
+  private static readonly LOCKOUT_MS = 15 * 60 * 1000; // 15 minutes
 
   constructor() {
     this.userService = new UserService();
@@ -89,86 +96,76 @@ export class AuthService implements AuthServiceInterface {
    * Authenticate user and generate JWT tokens
    */
   async login(credentials: LoginCredentials): Promise<LoginResponse> {
-    try {
-      const { email, password } = credentials;
-
-      logger.info(`Login attempt for email: ${email}`);
-
-      // Validate user credentials using existing UserService
-      const user = await this.validateUserCredentials(email, password);
-
-      if (!user) {
-        // Log failed login attempt
-        await this.auditLogService.logLogin(
-          0, // Unknown user ID
-          false,
-          'Invalid email or password',
-          undefined, // IP address not available in this context
-          undefined // User agent not available in this context
-        );
-
-        throw createError('Invalid email or password', 401, ErrorCodes.INVALID_CREDENTIALS);
-      }
-
-      if (user.status !== 'active') {
-        // Log failed login attempt due to inactive account
-        await this.auditLogService.logLogin(
-          user.id,
-          false,
-          'Account is deactivated',
-          undefined, // IP address not available in this context
-          undefined // User agent not available in this context
-        );
-
-        throw createError('Account is deactivated', 401, ErrorCodes.UNAUTHORIZED);
-      }
-
-      // Create JWT user object
-      const jwtUser: JWTUser = {
-        id: user.id.toString(),
-        email: user.email,
-        role: 'user', // Default role, can be extended based on user data
-      };
-
-      // Generate token pair
-      const tokens = JWTUtils.generateTokenPair(jwtUser);
-
-      // Update user's last login timestamp
-      await this.updateLastLogin(user.id);
-
-      // Log successful login
-      await this.auditLogService.logLogin(
-        user.id,
-        true,
-        undefined,
-        undefined, // IP address not available in this context
-        undefined // User agent not available in this context
+    const { email, password } = credentials;
+    const now = Date.now();
+    const lockout = AuthService.lockoutMap.get(email);
+    if (lockout && lockout.lockedUntil && now < lockout.lockedUntil) {
+      throw createError(
+        'Too many failed login attempts. Please try again later.',
+        429,
+        ErrorCodes.FORBIDDEN
       );
-
-      // Create authenticated user response
-      const authenticatedUser: AuthenticatedUser = {
-        id: user.id.toString(),
-        email: user.email,
-        role: 'user',
-        isActive: user.status === 'active',
-      };
-
-      logger.info(`User ${user.id} logged in successfully`);
-
-      return {
-        user: authenticatedUser,
-        tokens,
-        message: 'Login successful',
-      };
-    } catch (error) {
-      logger.error('Login failed:', error);
-
-      if (error instanceof Error && 'statusCode' in error && 'errorCode' in error) {
-        throw error;
-      }
-
-      throw createError('Login failed', 500, ErrorCodes.INTERNAL_SERVER_ERROR);
     }
+
+    logger.info(`Login attempt for email: ${email}`);
+
+    // Validate user credentials using existing UserService
+    const user = await this.validateUserCredentials(email, password);
+
+    if (!user) {
+      // Update lockout info
+      const failedCount = (lockout?.failedCount || 0) + 1;
+      const info: LoginLockoutInfo = {
+        failedCount,
+        lastFailed: now,
+      };
+      if (failedCount >= AuthService.MAX_FAILED) {
+        info.lockedUntil = now + AuthService.LOCKOUT_MS;
+      } else if (lockout?.lockedUntil) {
+        info.lockedUntil = lockout.lockedUntil;
+      }
+      AuthService.lockoutMap.set(email, info);
+      // Log failed login attempt
+      await this.auditLogService.logLogin(0, false, 'Invalid email or password');
+      throw createError('Invalid email or password', 401, ErrorCodes.INVALID_CREDENTIALS);
+    }
+
+    if (user.status !== 'active') {
+      // Log failed login attempt due to inactive account
+      await this.auditLogService.logLogin(user.id, false, 'Account is deactivated');
+      throw createError('Account is deactivated', 401, ErrorCodes.UNAUTHORIZED);
+    }
+
+    // Create JWT user object
+    const jwtUser: JWTUser = {
+      id: user.id.toString(),
+      email: user.email,
+      role: 'user', // Default role, can be extended based on user data
+    };
+
+    // Generate token pair
+    const tokens = JWTUtils.generateTokenPair(jwtUser);
+
+    // Update user's last login timestamp
+    await this.updateLastLogin(user.id);
+
+    await this.auditLogService.logLogin(user.id, true);
+
+    // Create authenticated user response
+    const authenticatedUser: AuthenticatedUser = {
+      id: user.id.toString(),
+      email: user.email,
+      role: 'user',
+      isActive: user.status === 'active',
+    };
+
+    logger.info(`User ${user.id} logged in successfully`);
+
+    return {
+      user: authenticatedUser,
+      tokens,
+      message: 'Login successful',
+    };
   }
 
   /**
@@ -404,11 +401,9 @@ export class AuthService implements AuthServiceInterface {
         return null;
       }
 
-      // Verify password using PasswordUtils
-      const isPasswordValid = await PasswordUtils.verifyPassword(
-        password,
-        userWithPassword.password_hash
-      );
+      // Use password_hash if present, otherwise fallback to password
+      const hash = userWithPassword.password_hash || userWithPassword.password;
+      const isPasswordValid = await PasswordUtils.verifyPassword(password, hash);
 
       if (!isPasswordValid) {
         return null;

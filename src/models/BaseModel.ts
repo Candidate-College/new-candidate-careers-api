@@ -47,13 +47,20 @@ export abstract class BaseModel<T extends DatabaseRecord> {
    * Create a new record
    */
   async create(data: Omit<T, 'id' | 'created_at' | 'updated_at'>): Promise<T> {
-    const [record] = await this.db(this.tableName)
-      .insert({
+    let insertData: any;
+    if (this.tableName === 'activity_logs') {
+      insertData = {
+        ...data,
+        created_at: new Date(),
+      };
+    } else {
+      insertData = {
         ...data,
         created_at: new Date(),
         updated_at: new Date(),
-      })
-      .returning('*');
+      };
+    }
+    const [record] = await this.db(this.tableName).insert(insertData).returning('*');
 
     return record;
   }
