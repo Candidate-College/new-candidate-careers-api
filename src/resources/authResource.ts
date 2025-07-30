@@ -22,4 +22,18 @@ export class AuthResource {
       },
     };
   }
+
+  /**
+   * Format refresh token response
+   */
+  static formatRefreshTokenResponse(
+    tokens: { accessToken: string; refreshToken: string },
+    expiresIn: number
+  ) {
+    return {
+      access_token: tokens.accessToken,
+      refresh_token: tokens.refreshToken,
+      expires_in: expiresIn,
+    };
+  }
 }
