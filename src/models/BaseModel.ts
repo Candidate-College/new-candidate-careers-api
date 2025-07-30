@@ -47,7 +47,8 @@ export abstract class BaseModel<T extends DatabaseRecord> {
    * Create a new record
    */
   async create(data: Omit<T, 'id' | 'created_at' | 'updated_at'>): Promise<T> {
-    let insertData: any;
+    let insertData: Omit<T, 'id' | 'created_at' | 'updated_at'> &
+      Partial<Pick<T, 'created_at' | 'updated_at'>>;
     if (this.tableName === 'activity_logs') {
       insertData = {
         ...data,

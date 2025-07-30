@@ -61,16 +61,11 @@ export class AuthService implements AuthServiceInterface {
       });
 
       // Log successful registration
-      await this.auditLogService.logUserRegistration(
-        newUser.id,
-        {
-          email: userData.email,
-          name: `${userData.first_name} ${userData.last_name}`,
-          role_id: 2,
-        },
-        undefined, // IP address not available in this context
-        undefined // User agent not available in this context
-      );
+      await this.auditLogService.logUserRegistration(newUser.id, {
+        email: userData.email,
+        name: `${userData.first_name} ${userData.last_name}`,
+        role_id: 2,
+      });
 
       logger.info(`User ${newUser.id} registered successfully`);
 
@@ -99,7 +94,7 @@ export class AuthService implements AuthServiceInterface {
     const { email, password } = credentials;
     const now = Date.now();
     const lockout = AuthService.lockoutMap.get(email);
-    if (lockout && lockout.lockedUntil && now < lockout.lockedUntil) {
+    if (lockout?.lockedUntil && now < lockout.lockedUntil) {
       throw createError(
         'Too many failed login attempts. Please try again later.',
         429,
@@ -176,10 +171,7 @@ export class AuthService implements AuthServiceInterface {
       logger.info(`Logout for user: ${userId}`);
 
       // Log logout event
-      await this.auditLogService.logLogout(
-        parseInt(userId, 10),
-        undefined // IP address not available in this context
-      );
+      await this.auditLogService.logLogout(parseInt(userId, 10));
 
       // In a stateless JWT system, logout is primarily handled client-side
       // by clearing cookies/tokens. However, we can log the event and
