@@ -265,6 +265,7 @@ export class EmailVerificationService {
         typeof token.user_id === 'string' ? parseInt(token.user_id, 10) : token.user_id;
       const updatedUser = await this.userModel.updateUser(userId, {
         email_verified_at: new Date(),
+        status: 'active',
       });
 
       if (!updatedUser) {
