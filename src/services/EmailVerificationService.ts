@@ -259,16 +259,16 @@ export class EmailVerificationService {
         displayName = user?.name || user?.email?.split('@')[0] || 'User';
       }
 
-      // Use the new professional email template
-      await mailer.sendEmailVerificationTemplate(
+      // Use the enhanced verification email template
+      await mailer.sendVerificationEmail(
         userEmail,
-        displayName,
         token,
         verificationUrl,
+        displayName,
         this.config.token_expiry_hours
       );
 
-      logger.info(`Verification email sent to user ${userId} using new template`);
+      logger.info(`Verification email sent to user ${userId} using enhanced template`);
       return true;
     } catch (error) {
       logger.error(`Failed to send verification email to user ${userId}:`, error);
@@ -301,16 +301,16 @@ export class EmailVerificationService {
         displayName = user?.name || user?.email?.split('@')[0] || 'User';
       }
 
-      // Use the new professional email template
-      await mailer.sendEmailVerificationTemplate(
+      // Use the enhanced verification email template
+      await mailer.sendVerificationEmail(
         userEmail,
-        displayName,
         token,
         verificationUrl,
+        displayName,
         expiryHours
       );
 
-      logger.info(`Custom verification email sent to user ${userId} using new template`);
+      logger.info(`Custom verification email sent to user ${userId} using enhanced template`);
       return true;
     } catch (error) {
       logger.error(`Failed to send custom verification email to user ${userId}:`, error);
