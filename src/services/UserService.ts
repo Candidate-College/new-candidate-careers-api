@@ -15,6 +15,7 @@ import { PasswordValidator } from '@/validators/passwordValidator';
 import { EmailVerificationService } from './EmailVerificationService';
 import { AuditLogService } from './AuditLogService';
 import { logger } from '@/utils/logger';
+import { SUPER_ADMIN_ROLE_ID } from '@/types/roles';
 
 export class UserService {
   private readonly userModel: UserModel;
@@ -247,7 +248,7 @@ export class UserService {
       // Check authorization (only Super Admin can update other users)
       if (userId !== currentUserId) {
         const currentUser = await this.userModel.findById(currentUserId);
-        if (!currentUser || currentUser.role_id !== 1) {
+        if (!currentUser || currentUser.role_id !== SUPER_ADMIN_ROLE_ID) {
           // Assuming role_id 1 is Super Admin
           return {
             success: false,

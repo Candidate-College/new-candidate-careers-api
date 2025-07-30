@@ -111,6 +111,8 @@ export class PasswordValidator {
     'success',
   ];
 
+  private static readonly SPECIAL_CHAR_REGEX = /[!@#$%^&*()_+=[\]{};':"\\|,.<>/?-]/;
+
   /**
    * Validate password with comprehensive rules
    */
@@ -216,10 +218,7 @@ export class PasswordValidator {
     const errors: string[] = [];
     let score = 0;
 
-    // Use a character class without unnecessary escapes
-    const specialCharRegex = /[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/;
-
-    if (!specialCharRegex.test(password)) {
+    if (!this.SPECIAL_CHAR_REGEX.test(password)) {
       errors.push('Password must contain at least one special character');
     } else {
       score += 20;
@@ -262,9 +261,7 @@ export class PasswordValidator {
     if (password.length >= 12) score += 10;
     if (/(?=.*[A-Z])(?=.*[a-z])(?=.*\d)/.test(password)) score += 10;
 
-    // Use the same special char regex without unnecessary escapes
-    const specialCharRegex = /[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/;
-    if (specialCharRegex.test(password)) score += 10;
+    if (this.SPECIAL_CHAR_REGEX.test(password)) score += 10;
 
     return { score };
   }
@@ -303,7 +300,7 @@ export class PasswordValidator {
       suggestions.push('Add a number');
     }
 
-    if (!/[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(password) && opts.requireSpecialChars) {
+    if (!this.SPECIAL_CHAR_REGEX.test(password) && opts.requireSpecialChars) {
       suggestions.push('Add a special character');
     }
 

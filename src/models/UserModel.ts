@@ -1,6 +1,7 @@
 import { BaseModel } from './BaseModel';
 import { User, CreateUserRequest } from '@/types';
 import { Knex } from 'knex';
+import { isValidUUID } from '@/utils/uuid';
 
 export class UserModel extends BaseModel<User> {
   protected tableName = 'users';
@@ -52,7 +53,6 @@ export class UserModel extends BaseModel<User> {
     if (await this.emailExists(userData.email)) {
       throw new Error('Email already exists');
     }
-
     // Create the user (password should be hashed before calling this method)
     return await this.create({
       email: userData.email,
@@ -81,6 +81,10 @@ export class UserModel extends BaseModel<User> {
       if (await this.emailExists(updateData.email, id)) {
         throw new Error('Email already exists');
       }
+    }
+    // Validate uuid if present
+    if ('uuid' in updateData && updateData.uuid && !isValidUUID(updateData.uuid)) {
+      throw new Error('Invalid UUID format');
     }
 
     return await this.update(id, updateData);

@@ -20,6 +20,7 @@ import {
 import { AuditValidator } from '@/validators/auditValidator';
 import { logger } from '@/utils/logger';
 import { createError } from '@/utils/errors';
+import { AuditLogModel } from '@/models/AuditLogModel';
 
 export class AuditLogService {
   private readonly config: {
@@ -27,6 +28,7 @@ export class AuditLogService {
     enableDetailedLogging: boolean;
     exportMaxRecords: number;
   };
+  private readonly auditLogModel: AuditLogModel;
 
   constructor(config: Partial<typeof this.config> = {}) {
     this.config = {
@@ -35,6 +37,7 @@ export class AuditLogService {
       exportMaxRecords: 10000,
       ...config,
     };
+    this.auditLogModel = new AuditLogModel();
   }
 
   /**
@@ -55,8 +58,7 @@ export class AuditLogService {
       );
 
       // Create audit log entry
-      const auditLog: AuditLog = {
-        id: 0, // Will be set by database
+      const auditLog: Omit<AuditLog, 'id' | 'created_at' | 'updated_at'> = {
         user_id: sanitizedRequest.user_id ?? null,
         action: sanitizedRequest.action,
         resource_type: sanitizedRequest.resource_type,
@@ -67,16 +69,14 @@ export class AuditLogService {
         session_id: sanitizedRequest.session_id ?? null,
         success: sanitizedRequest.success ?? true,
         error_message: sanitizedRequest.error_message ?? null,
-        created_at: new Date(),
-        updated_at: new Date(),
       };
 
-      // TODO: Save to database
-      // const savedLog = await this.auditLogModel.create(auditLog);
+      // Save to database
+      const savedLog = await this.auditLogModel.create(auditLog);
 
-      logger.info(`Audit log created: ${auditLog.action} for ${auditLog.resource_type}`);
+      logger.info(`Audit log created: ${savedLog.action} for ${savedLog.resource_type}`);
 
-      return auditLog;
+      return savedLog;
     } catch (error) {
       logger.error('Error creating audit log:', error);
       throw error;
