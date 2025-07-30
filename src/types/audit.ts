@@ -39,6 +39,7 @@ export interface CreateAuditLogRequest {
   new_values?: Record<string, any>;
   ip_address?: string;
   user_agent?: string;
+  details?: Record<string, unknown>;
 }
 
 /**

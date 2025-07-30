@@ -20,77 +20,83 @@ export class AuditLoggingMiddleware {
     this.auditLogService = new AuditLogService();
   }
 
+  private handleLoginAudit(req: Request, res: Response, statusCode: number): void {
+    if (req.path === '/api/v1/auth/login' && req.method === 'POST') {
+      const auditService = this.auditLogService;
+      const authReq = req as AuthenticatedRequest;
+      const userAgent = req.get('User-Agent');
+      const ipAddress = req.ip;
+      const isSuccess = statusCode === 200;
+      const userId = isSuccess && authReq.user ? parseInt(authReq.user.id, 10) : 0;
+      auditService
+        .logLogin(
+          userId,
+          isSuccess,
+          isSuccess ? undefined : 'Authentication failed',
+          ipAddress,
+          userAgent
+        )
+        .catch((error: unknown) => {
+          logger.error('Failed to log authentication attempt:', error);
+        });
+    }
+  }
+
+  private handleLogoutAudit(req: Request): void {
+    if (req.path === '/api/v1/auth/logout' && req.method === 'POST') {
+      const auditService = this.auditLogService;
+      const authReq = req as AuthenticatedRequest;
+      if (authReq.user) {
+        auditService.logLogout(parseInt(authReq.user.id, 10), req.ip).catch((error: unknown) => {
+          logger.error('Failed to log logout event:', error);
+        });
+      }
+    }
+  }
+
+  private handleProfileUpdateAudit(req: Request, statusCode: number): void {
+    if (req.path === '/api/v1/users/profile' && req.method === 'PUT') {
+      const auditService = this.auditLogService;
+      const authReq = req as AuthenticatedRequest;
+      const isSuccess = statusCode === 200;
+      if (authReq.user && isSuccess) {
+        auditService
+          .logProfileUpdate(parseInt(authReq.user.id, 10), req.body, true)
+          .catch((error: unknown) => {
+            logger.error('Failed to log profile update:', error);
+          });
+      }
+    }
+  }
+
+  private handlePasswordChangeAudit(req: Request, statusCode: number): void {
+    if (req.path === '/api/v1/users/profile' && req.method === 'PUT' && req.body.new_password) {
+      const auditService = this.auditLogService;
+      const authReq = req as AuthenticatedRequest;
+      const isSuccess = statusCode === 200;
+      if (authReq.user && isSuccess) {
+        auditService
+          .logPasswordChange(parseInt(authReq.user.id, 10), true)
+          .catch((error: unknown) => {
+            logger.error('Failed to log password change:', error);
+          });
+      }
+    }
+  }
+
   /**
    * Middleware to log authentication attempts
    */
   logAuthAttempts = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     const originalSend = res.send;
-    const auditService = this.auditLogService;
 
     // Override res.send to capture response
-    res.send = function (body: unknown): Response {
+    res.send = (body: unknown): Response => {
       const statusCode = res.statusCode;
-
-      // Log authentication attempts
-      if (req.path === '/api/v1/auth/login' && req.method === 'POST') {
-        const authReq = req as AuthenticatedRequest;
-        const userAgent = req.get('User-Agent');
-        const ipAddress = req.ip;
-
-        // Determine if login was successful
-        const isSuccess = statusCode === 200;
-        const userId = isSuccess && authReq.user ? parseInt(authReq.user.id, 10) : 0;
-
-        // Log the authentication attempt
-        auditService
-          .logLogin(
-            userId,
-            isSuccess,
-            isSuccess ? undefined : 'Authentication failed',
-            ipAddress,
-            userAgent
-          )
-          .catch((error: unknown) => {
-            logger.error('Failed to log authentication attempt:', error);
-          });
-      }
-
-      // Log logout events
-      if (req.path === '/api/v1/auth/logout' && req.method === 'POST') {
-        const authReq = req as AuthenticatedRequest;
-        if (authReq.user) {
-          auditService.logLogout(parseInt(authReq.user.id, 10), req.ip).catch((error: unknown) => {
-            logger.error('Failed to log logout event:', error);
-          });
-        }
-      }
-
-      // Log profile updates
-      if (req.path === '/api/v1/users/profile' && req.method === 'PUT') {
-        const authReq = req as AuthenticatedRequest;
-        const isSuccess = statusCode === 200;
-        if (authReq.user && isSuccess) {
-          auditService
-            .logProfileUpdate(parseInt(authReq.user.id, 10), req.body, true)
-            .catch((error: unknown) => {
-              logger.error('Failed to log profile update:', error);
-            });
-        }
-      }
-
-      // Log password changes
-      if (req.path === '/api/v1/users/profile' && req.method === 'PUT' && req.body.new_password) {
-        const authReq = req as AuthenticatedRequest;
-        const isSuccess = statusCode === 200;
-        if (authReq.user && isSuccess) {
-          auditService
-            .logPasswordChange(parseInt(authReq.user.id, 10), true)
-            .catch((error: unknown) => {
-              logger.error('Failed to log password change:', error);
-            });
-        }
-      }
-
+      this.handleLoginAudit(req, res, statusCode);
+      this.handleLogoutAudit(req);
+      this.handleProfileUpdateAudit(req, statusCode);
+      this.handlePasswordChangeAudit(req, statusCode);
       return originalSend.call(this, body);
     };
 
@@ -247,15 +253,16 @@ export class AuditLoggingMiddleware {
               .createAuditLog({
                 user_id: parseInt(authReq.user.id, 10),
                 action: 'sessions_revoked',
-                resource_type: 'session',
-                resource_id: parseInt(authReq.user.id, 10),
+                subject_type: 'session',
                 details: {
+                  resource_type: 'session',
+                  resource_id: parseInt(authReq.user.id, 10),
                   revoked_count: revokedCount,
                   revocation_type: 'all_sessions',
+                  success: true,
                 },
                 ip_address: req.ip || '',
                 user_agent: req.get('User-Agent') || '',
-                success: true,
               })
               .catch((error: unknown) => {
                 logger.error('Failed to log session revocation:', error);
@@ -291,17 +298,18 @@ export class AuditLoggingMiddleware {
           .createAuditLog({
             user_id: userId,
             action: statusCode === 401 ? 'unauthorized_access' : 'forbidden_access',
-            resource_type: 'endpoint',
-            resource_id: 0, // Use 0 instead of null for endpoint
+            subject_type: 'endpoint',
             details: {
+              resource_type: 'endpoint',
+              resource_id: 0, // Use 0 instead of null for endpoint
               path: req.path,
               method: req.method,
               status_code: statusCode,
+              success: false,
+              error_message: statusCode === 401 ? 'Unauthorized access' : 'Forbidden access',
             },
             ip_address: req.ip || '',
             user_agent: req.get('User-Agent') || '',
-            success: false,
-            error_message: statusCode === 401 ? 'Unauthorized access' : 'Forbidden access',
           })
           .catch((error: unknown) => {
             logger.error('Failed to log security event:', error);
