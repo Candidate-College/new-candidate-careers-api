@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { AuthController } from '@/controllers/AuthController';
+import { authRateLimit } from '@/middleware/rateLimitMiddleware';
 
 const router = Router();
 const authController = new AuthController();
@@ -80,7 +81,7 @@ const authController = new AuthController();
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
  */
-router.post('/register', authController.register);
+router.post('/register', authRateLimit(), authController.register);
 
 /**
  * @swagger
@@ -149,6 +150,233 @@ router.post('/register', authController.register);
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
  */
-router.post('/login', authController.login);
+router.post('/login', authRateLimit(), authController.login);
+
+/**
+ * @swagger
+ * /auth/refresh:
+ *   post:
+ *     summary: Refresh access token
+ *     tags: [Authentication]
+ *     description: Refresh access token using refresh token
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               refresh_token:
+ *                 type: string
+ *                 description: Refresh token
+ *             required:
+ *               - refresh_token
+ *           example:
+ *             refresh_token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+ *     responses:
+ *       200:
+ *         description: Token refreshed successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     access_token:
+ *                       type: string
+ *                     refresh_token:
+ *                       type: string
+ *                     expires_in:
+ *                       type: number
+ *                 timestamp:
+ *                   type: string
+ *             example:
+ *               message: "Token refreshed successfully"
+ *               data:
+ *                 access_token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+ *                 refresh_token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+ *                 expires_in: 900000
+ *               timestamp: "2024-01-01T00:00:00.000Z"
+ *       401:
+ *         description: Invalid or expired refresh token
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ */
+router.post('/refresh', authRateLimit(), authController.refreshToken);
+
+/**
+ * @swagger
+ * /auth/logout:
+ *   post:
+ *     summary: Logout user
+ *     tags: [Authentication]
+ *     description: Logout user and invalidate current session
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Logout successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 timestamp:
+ *                   type: string
+ *             example:
+ *               message: "Logout successful"
+ *               timestamp: "2024-01-01T00:00:00.000Z"
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ */
+router.post('/logout', authRateLimit(), authController.logout);
+
+/**
+ * @swagger
+ * /auth/session:
+ *   get:
+ *     summary: Get session status
+ *     tags: [Authentication]
+ *     description: Get current session information and status
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Session information retrieved
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     session:
+ *                       type: object
+ *                       properties:
+ *                         id:
+ *                           type: string
+ *                         user_id:
+ *                           type: string
+ *                         created_at:
+ *                           type: string
+ *                         last_activity:
+ *                           type: string
+ *                         expires_at:
+ *                           type: string
+ *                         is_active:
+ *                           type: boolean
+ *                     user:
+ *                       type: object
+ *                       properties:
+ *                         id:
+ *                           type: string
+ *                         email:
+ *                           type: string
+ *                         username:
+ *                           type: string
+ *                 timestamp:
+ *                   type: string
+ *             example:
+ *               message: "Session information retrieved"
+ *               data:
+ *                 session:
+ *                   id: "session-uuid"
+ *                   user_id: "1"
+ *                   created_at: "2024-01-01T00:00:00.000Z"
+ *                   last_activity: "2024-01-01T00:00:00.000Z"
+ *                   expires_at: "2024-01-08T00:00:00.000Z"
+ *                   is_active: true
+ *                 user:
+ *                   id: "1"
+ *                   email: "user@example.com"
+ *                   username: "johndoe"
+ *               timestamp: "2024-01-01T00:00:00.000Z"
+ *       401:
+ *         description: Unauthorized or session not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ */
+router.get('/session', authRateLimit(), authController.getSessionStatus);
+
+/**
+ * @swagger
+ * /auth/revoke:
+ *   post:
+ *     summary: Revoke all user sessions
+ *     tags: [Authentication]
+ *     description: Revoke all sessions for the current user
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: All sessions revoked successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     revoked_count:
+ *                       type: number
+ *                 timestamp:
+ *                   type: string
+ *             example:
+ *               message: "All sessions revoked successfully"
+ *               data:
+ *                 revoked_count: 3
+ *               timestamp: "2024-01-01T00:00:00.000Z"
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ */
+router.post('/revoke', authRateLimit(), authController.revokeAllSessions);
 
 export default router;
