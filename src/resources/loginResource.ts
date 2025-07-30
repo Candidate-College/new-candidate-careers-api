@@ -7,15 +7,20 @@ export class LoginResource {
    * Format user data for login response
    */
   static formatLoginResponse(loginData: JWTLoginResponse, user: User): LoginResponse {
+    // Extract first_name and last_name from the name field
+    const nameParts = user.name.split(' ');
+    const first_name = nameParts[0] || '';
+    const last_name = nameParts.slice(1).join(' ') || '';
+
     return {
       user: {
         id: user.id.toString(),
         email: user.email,
-        username: user.username,
-        first_name: user.first_name,
-        last_name: user.last_name,
+        username: user.email.split('@')[0] || user.email, // Use email prefix as username
+        first_name,
+        last_name,
         role: loginData.user.role,
-        is_active: user.is_active,
+        is_active: user.status === 'active',
       },
       tokens: {
         access_token: loginData.tokens.accessToken,
