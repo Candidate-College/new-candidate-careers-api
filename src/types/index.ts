@@ -24,30 +24,32 @@ export interface DatabaseRecord {
 }
 
 export interface User extends DatabaseRecord {
+  uuid: string;
   email: string;
-  username: string;
-  first_name: string;
-  last_name: string;
-  is_active: boolean;
-  last_login?: Date;
+  password: string;
+  name: string;
+  role_id: number;
+  status: 'active' | 'inactive' | 'suspended';
+  email_verified_at: Date | null;
+  last_login_at: Date | null;
+  deleted_at: Date | null;
 }
 
 export interface CreateUserRequest {
   email: string;
-  username: string;
-  first_name: string;
-  last_name: string;
+  name: string;
   password: string;
+  role_id: number;
 }
 
 export interface UpdateUserRequest {
   email?: string;
-  username?: string;
-  first_name?: string;
-  last_name?: string;
-  is_active?: boolean;
+  name?: string;
   password?: string;
-  last_login?: Date;
+  role_id?: number;
+  status?: 'active' | 'inactive' | 'suspended';
+  email_verified_at?: Date | null;
+  last_login_at?: Date | null;
 }
 
 export interface QueryParams {
@@ -78,3 +80,12 @@ export interface UpdatePostRequest {
   content?: string;
   status?: 'draft' | 'published' | 'archived';
 }
+
+// Export user registration types
+export * from './userRegistration';
+
+// Export email verification types
+export * from './emailVerification';
+
+// Export audit logging types
+export * from './audit';
