@@ -160,16 +160,17 @@ export class AuditLoggingMiddleware {
       if (req.path === '/api/v1/auth/verify-email' && req.method === 'POST') {
         const isSuccess = statusCode === 200;
 
-        // Try to get user ID from response
+        // Extract user ID from verification token instead of response body
         let userId: number | null = null;
         if (isSuccess) {
           try {
-            const responseBody = typeof body === 'string' ? JSON.parse(body) : body;
-            if (responseBody?.data?.user_id) {
-              userId = responseBody.data.user_id;
+            // Get user ID from the verification token that was processed by the middleware
+            const authReq = req as AuthenticatedRequest;
+            if (authReq.user) {
+              userId = parseInt(authReq.user.id, 10);
             }
           } catch (error) {
-            logger.error('Failed to parse verification response:', error);
+            logger.error('Failed to extract user ID from verification token:', error);
           }
         }
 

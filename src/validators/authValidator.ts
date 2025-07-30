@@ -39,7 +39,7 @@ export class AuthValidator {
 
   private static validateUsername(username: string): ValidationError[] {
     const errors: ValidationError[] = [];
-    const usernameRegex = /^\w+$/;
+    const usernameRegex = /^[a-zA-Z0-9_]+$/;
     if (!usernameRegex.test(username)) {
       errors.push({
         field: 'username',

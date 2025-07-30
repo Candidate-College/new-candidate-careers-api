@@ -198,8 +198,11 @@ export class AuditValidator {
    * Check if IP address is valid
    */
   private static isValidIpAddress(ip: string): boolean {
-    // Accept IPv6 localhost shorthand
-    if (ip === '::1') return true;
+    // Accept common localhost representations for development and testing
+    // IPv6 localhost shorthand (::1) and IPv4 localhost (127.0.0.1) are commonly used
+    // in development environments and should be considered valid
+    if (ip === '::1' || ip === '127.0.0.1') return true;
+
     // Simplified IP validation for IPv4 and IPv6
     const ipv4Regex = /^(\d{1,3}\.){3}\d{1,3}$/;
     const ipv6Regex = /^([0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}$/;

@@ -6,6 +6,12 @@ export abstract class BaseModel<T extends DatabaseRecord> {
   protected abstract tableName: string;
   protected db: Knex;
 
+  /**
+   * Override this property in child classes to exclude updated_at from create operations
+   * Default is false (include updated_at)
+   */
+  protected excludeUpdatedAt: boolean = false;
+
   constructor() {
     this.db = db;
   }
@@ -49,7 +55,8 @@ export abstract class BaseModel<T extends DatabaseRecord> {
   async create(data: Omit<T, 'id' | 'created_at' | 'updated_at'>): Promise<T> {
     let insertData: Omit<T, 'id' | 'created_at' | 'updated_at'> &
       Partial<Pick<T, 'created_at' | 'updated_at'>>;
-    if (this.tableName === 'activity_logs') {
+
+    if (this.excludeUpdatedAt) {
       insertData = {
         ...data,
         created_at: new Date(),
