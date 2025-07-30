@@ -3,13 +3,235 @@ import { asyncHandler } from '@/middleware/errorHandler';
 import { createSuccessResponse, createErrorResponse } from '@/utils/response';
 import { UserService } from '@/services/UserService';
 import { CreateUserRequest, UpdateUserRequest, QueryParams } from '@/types';
+import {
+  UserRegistrationRequest,
+  UserProfileUpdateRequest,
+  EmailVerificationRequest,
+} from '@/types/userRegistration';
+import { UserRegistrationValidator } from '@/validators/userRegistrationValidator';
+import { EmailVerificationValidator } from '@/validators/emailVerificationValidator';
+import { formatValidationErrorResponse } from '@/utils/errors';
+import { logger } from '@/utils/logger';
+import { AuthenticatedRequest } from '@/types/jwt';
 
+/**
+ * User Controller
+ *
+ * Handles HTTP requests for user management operations including registration,
+ * email verification, profile management, and CRUD operations. Implements
+ * proper validation, error handling, and response formatting for all user-related endpoints.
+ *
+ * @module src/controllers/UserController
+ */
 export class UserController {
   private userService: UserService;
 
   constructor() {
     this.userService = new UserService();
   }
+
+  /**
+   * Register a new user (Super Admin only)
+   */
+  registerUser = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    logger.info('User registration request received');
+
+    // Validate registration data
+    const validation = UserRegistrationValidator.validateRegistrationRequest(req.body);
+    if (!validation.isValid) {
+      logger.warn('User registration validation failed:', validation.errors);
+      res.status(400).json(formatValidationErrorResponse('Validation failed', validation.errors));
+      return;
+    }
+
+    const registrationData: UserRegistrationRequest = req.body;
+    const ipAddress = req.ip;
+    const userAgent = req.get('User-Agent');
+
+    const result = await this.userService.registerUser(registrationData, ipAddress, userAgent);
+
+    if (!result.success) {
+      const errorResponse = createErrorResponse(result.error || 'Registration failed');
+      res.status(400).json(errorResponse);
+      return;
+    }
+
+    const response = createSuccessResponse(
+      'User registered successfully. Verification email sent.',
+      {
+        id: result.user!.id,
+        uuid: result.user!.uuid,
+        email: result.user!.email,
+        name: result.user!.name,
+        role_id: result.user!.role_id,
+        status: result.user!.status,
+        email_verified_at: result.user!.email_verified_at,
+        created_at: result.user!.created_at,
+      }
+    );
+
+    logger.info(`User ${result.user!.id} registered successfully`);
+    res.status(201).json(response);
+  });
+
+  /**
+   * Verify email with token
+   */
+  verifyEmail = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    logger.info('Email verification request received');
+
+    // Validate verification data
+    const validation = EmailVerificationValidator.validateVerifyTokenRequest(req.body);
+    if (!validation.isValid) {
+      logger.warn('Email verification validation failed:', validation.errors);
+      res.status(400).json(formatValidationErrorResponse('Validation failed', validation.errors));
+      return;
+    }
+
+    const verificationData: EmailVerificationRequest = req.body;
+    const ipAddress = req.ip;
+
+    const result = await this.userService.verifyEmailToken(
+      verificationData.token,
+      verificationData.email,
+      ipAddress
+    );
+
+    if (!result.success) {
+      const errorResponse = createErrorResponse(result.error || 'Email verification failed');
+      res.status(400).json(errorResponse);
+      return;
+    }
+
+    const response = createSuccessResponse('Email verified successfully', {
+      user_id: result.user!.id,
+      verified_at: result.user!.email_verified_at,
+    });
+
+    logger.info(`Email verified successfully for user ${result.user!.id}`);
+    res.status(200).json(response);
+  });
+
+  /**
+   * Resend verification email
+   */
+  resendVerificationEmail = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    logger.info('Resend verification email request received');
+
+    const { email } = req.body;
+    const ipAddress = req.ip;
+    const userAgent = req.get('User-Agent');
+
+    if (!email) {
+      const errorResponse = createErrorResponse('Email is required');
+      res.status(400).json(errorResponse);
+      return;
+    }
+
+    const result = await this.userService.resendVerificationEmail(email, ipAddress, userAgent);
+
+    if (!result.success) {
+      const errorResponse = createErrorResponse(
+        result.error || 'Failed to resend verification email'
+      );
+      res.status(400).json(errorResponse);
+      return;
+    }
+
+    const response = createSuccessResponse('Verification email sent successfully');
+    logger.info(`Verification email resent for ${email}`);
+    res.status(200).json(response);
+  });
+
+  /**
+   * Get current user's profile
+   */
+  getUserProfile = asyncHandler(async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+    const userId = req.user?.id;
+
+    if (!userId) {
+      const errorResponse = createErrorResponse('User not authenticated');
+      res.status(401).json(errorResponse);
+      return;
+    }
+
+    const user = await this.userService.getUserProfile(parseInt(userId, 10));
+
+    if (!user) {
+      const errorResponse = createErrorResponse('User profile not found');
+      res.status(404).json(errorResponse);
+      return;
+    }
+
+    const response = createSuccessResponse('User profile retrieved successfully', {
+      id: user.id,
+      uuid: user.uuid,
+      email: user.email,
+      name: user.name,
+      role_id: user.role_id,
+      status: user.status,
+      email_verified_at: user.email_verified_at,
+      last_login_at: user.last_login_at,
+      created_at: user.created_at,
+      updated_at: user.updated_at,
+    });
+
+    res.status(200).json(response);
+  });
+
+  /**
+   * Update current user's profile
+   */
+  updateUserProfile = asyncHandler(
+    async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+      const userId = req.user?.id;
+
+      if (!userId) {
+        const errorResponse = createErrorResponse('User not authenticated');
+        res.status(401).json(errorResponse);
+        return;
+      }
+
+      // Validate profile update data
+      const validation = UserRegistrationValidator.validateProfileUpdateRequest(req.body);
+      if (!validation.isValid) {
+        logger.warn('Profile update validation failed:', validation.errors);
+        res.status(400).json(formatValidationErrorResponse('Validation failed', validation.errors));
+        return;
+      }
+
+      const updateData: UserProfileUpdateRequest = req.body;
+      const currentUserId = parseInt(userId, 10);
+
+      const result = await this.userService.updateUserProfile(
+        currentUserId,
+        updateData,
+        currentUserId
+      );
+
+      if (!result.success) {
+        const errorResponse = createErrorResponse(result.error || 'Profile update failed');
+        res.status(400).json(errorResponse);
+        return;
+      }
+
+      const response = createSuccessResponse('Profile updated successfully', {
+        id: result.user!.id,
+        uuid: result.user!.uuid,
+        email: result.user!.email,
+        name: result.user!.name,
+        role_id: result.user!.role_id,
+        status: result.user!.status,
+        email_verified_at: result.user!.email_verified_at,
+        last_login_at: result.user!.last_login_at,
+        created_at: result.user!.created_at,
+        updated_at: result.user!.updated_at,
+      });
+
+      logger.info(`Profile updated successfully for user ${result.user!.id}`);
+      res.status(200).json(response);
+    }
+  );
 
   // Get all users with pagination
   getUsers = asyncHandler(async (req: Request, res: Response): Promise<void> => {
