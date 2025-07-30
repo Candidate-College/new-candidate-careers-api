@@ -57,7 +57,10 @@ export class AuthController {
 
     // Format response
     const userData = AuthResource.formatRegisterResponse(newUser);
-    const successResponse = createSuccessResponse('User registered successfully', userData);
+    const successResponse = createSuccessResponse(
+      'User registered successfully. Verification email sent.',
+      userData
+    );
 
     logger.info(`User ${newUser.id} registered successfully`);
 

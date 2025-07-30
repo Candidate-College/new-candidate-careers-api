@@ -16,6 +16,7 @@ import { EmailVerificationService } from './EmailVerificationService';
 import { AuditLogService } from './AuditLogService';
 import { logger } from '@/utils/logger';
 import { SUPER_ADMIN_ROLE_ID } from '@/types/roles';
+import { CreateEmailVerificationTokenRequest } from '@/types/emailVerification';
 
 export class UserService {
   private readonly userModel: UserModel;
@@ -181,12 +182,20 @@ export class UserService {
       });
 
       // Create email verification token
-      const tokenResult = await this.emailVerificationService.createToken({
+      const tokenData: CreateEmailVerificationTokenRequest = {
         user_id: newUser.id,
         type: 'email_verification',
-        ip_address: ipAddress || '',
-        user_agent: userAgent || '',
-      });
+      };
+
+      // Only add IP address and user agent if they have valid values
+      if (ipAddress && ipAddress.trim() !== '') {
+        tokenData.ip_address = ipAddress;
+      }
+      if (userAgent && userAgent.trim() !== '') {
+        tokenData.user_agent = userAgent;
+      }
+
+      const tokenResult = await this.emailVerificationService.createToken(tokenData);
 
       // Log registration event
       await this.auditLogService.logUserRegistration(

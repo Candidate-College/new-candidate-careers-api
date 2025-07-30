@@ -1,4 +1,5 @@
 import { UserService } from './UserService';
+import { EmailVerificationService } from './EmailVerificationService';
 import { JWTUtils } from '@/utils/jwt';
 import { logger } from '@/utils/logger';
 import { PasswordUtils } from '@/utils/password';
@@ -22,6 +23,7 @@ import { ErrorCodes } from '@/types/errors';
 
 export class AuthService implements AuthServiceInterface {
   private readonly userService: UserService;
+  private readonly emailVerificationService: EmailVerificationService;
   private readonly auditLogService: AuditLogService;
 
   /**
@@ -33,6 +35,7 @@ export class AuthService implements AuthServiceInterface {
 
   constructor() {
     this.userService = new UserService();
+    this.emailVerificationService = new EmailVerificationService();
     this.auditLogService = new AuditLogService();
   }
 
@@ -53,24 +56,68 @@ export class AuthService implements AuthServiceInterface {
         );
       }
 
-      // Create user using UserService
-      const newUser = await this.userService.createUser({
+      // Use UserService.registerUser which includes email verification
+      const registrationResult = await this.userService.registerUser({
         email: userData.email,
         name: `${userData.first_name} ${userData.last_name}`,
         password: userData.password,
         role_id: 2, // Default role for regular users
       });
 
+      if (!registrationResult.success) {
+        throw createResourceConflictError(
+          registrationResult.error || 'Registration failed',
+          ErrorCodes.INTERNAL_SERVER_ERROR,
+          'An unexpected error occurred during registration'
+        );
+      }
+
+      // Send verification email if token was created
+      if (registrationResult.verificationToken && registrationResult.user) {
+        try {
+          logger.info(
+            `Attempting to send verification email for user ${registrationResult.user.id}`
+          );
+          logger.info(`Token: ${registrationResult.verificationToken}`);
+          logger.info(`User email: ${registrationResult.user.email}`);
+          logger.info(`User name: ${registrationResult.user.name}`);
+
+          await this.emailVerificationService.sendVerificationEmail(
+            registrationResult.user.id,
+            registrationResult.verificationToken,
+            registrationResult.user.email,
+            registrationResult.user.name
+          );
+          logger.info(`Verification email sent to user ${registrationResult.user.id}`);
+        } catch (emailError) {
+          logger.error('Failed to send verification email:', emailError);
+          logger.error('Email error details:', {
+            message: emailError instanceof Error ? emailError.message : 'Unknown error',
+            stack: emailError instanceof Error ? emailError.stack : undefined,
+            userId: registrationResult.user.id,
+            userEmail: registrationResult.user.email,
+          });
+          // Don't fail registration if email fails
+        }
+      } else {
+        logger.warn('No verification token or user data available for email sending');
+        logger.warn('Registration result:', {
+          hasToken: !!registrationResult.verificationToken,
+          hasUser: !!registrationResult.user,
+          tokenLength: registrationResult.verificationToken?.length || 0,
+        });
+      }
+
       // Log successful registration
-      await this.auditLogService.logUserRegistration(newUser.id, {
+      await this.auditLogService.logUserRegistration(registrationResult.user!.id, {
         email: userData.email,
         name: `${userData.first_name} ${userData.last_name}`,
         role_id: 2,
       });
 
-      logger.info(`User ${newUser.id} registered successfully`);
+      logger.info(`User ${registrationResult.user!.id} registered successfully`);
 
-      return newUser;
+      return registrationResult.user!;
     } catch (error) {
       logger.error('Registration failed:', error);
 

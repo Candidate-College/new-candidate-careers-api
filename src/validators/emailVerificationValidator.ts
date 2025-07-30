@@ -74,10 +74,21 @@ export class EmailVerificationValidator {
 
     // Validate IP address format if provided
     if (data.ip_address) {
-      const ipRegex =
-        /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$|^(?:[0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}$/;
-      if (!ipRegex.test(data.ip_address)) {
-        errors.push({ field: 'ip_address', message: 'Invalid IP address format' });
+      // Skip validation for empty strings, localhost, and IPv6 localhost
+      if (
+        data.ip_address.trim() === '' ||
+        data.ip_address === 'localhost' ||
+        data.ip_address === '::1' ||
+        data.ip_address === '127.0.0.1'
+      ) {
+        // These are valid for development/testing
+        // Continue with validation for other fields
+      } else {
+        const ipRegex =
+          /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$|^(?:[0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}$/;
+        if (!ipRegex.test(data.ip_address)) {
+          errors.push({ field: 'ip_address', message: 'Invalid IP address format' });
+        }
       }
     }
 

@@ -45,9 +45,12 @@ export class EmailVerificationService {
     request: CreateEmailVerificationTokenRequest
   ): Promise<EmailVerificationServiceResult> {
     try {
+      logger.info(`Creating email verification token for user ${request.user_id}`);
+
       // Validate request
       const validation = EmailVerificationValidator.validateCreateTokenRequest(request);
       if (!validation.isValid) {
+        logger.error(`Token creation validation failed:`, validation.errors);
         return {
           success: false,
           error: validation.errors[0]?.message || 'Invalid token creation request',
@@ -58,10 +61,12 @@ export class EmailVerificationService {
       }
 
       const sanitizedRequest = EmailVerificationValidator.sanitizeCreateTokenData(request);
+      logger.info(`Sanitized request:`, sanitizedRequest);
 
       // Check if user exists
       const user = await this.userModel.findById(sanitizedRequest.user_id);
       if (!user) {
+        logger.error(`User not found: ${sanitizedRequest.user_id}`);
         return {
           success: false,
           error: 'User not found',
@@ -71,8 +76,11 @@ export class EmailVerificationService {
         };
       }
 
+      logger.info(`User found: ${user.email}`);
+
       // Check if user email is already verified
       if (user.email_verified_at) {
+        logger.warn(`Email already verified for user ${sanitizedRequest.user_id}`);
         return {
           success: false,
           error: 'Email is already verified',
@@ -84,7 +92,12 @@ export class EmailVerificationService {
 
       // Check token limit per user
       const existingTokens = await this.tokenModel.findActiveByUserId(sanitizedRequest.user_id);
+      logger.info(
+        `Found ${existingTokens.length} existing tokens for user ${sanitizedRequest.user_id}`
+      );
+
       if (existingTokens.length >= this.config.max_tokens_per_user) {
+        logger.warn(`Token limit exceeded for user ${sanitizedRequest.user_id}`);
         return {
           success: false,
           error: `Maximum tokens (${this.config.max_tokens_per_user}) reached for this user`,
@@ -100,6 +113,9 @@ export class EmailVerificationService {
         Date.now() +
           (sanitizedRequest.expires_in_hours || this.config.token_expiry_hours) * 60 * 60 * 1000
       );
+
+      logger.info(`Generated token: ${token}`);
+      logger.info(`Token expires at: ${expiresAt}`);
 
       // Create token record
       const tokenData: {
@@ -124,9 +140,11 @@ export class EmailVerificationService {
         tokenData.user_agent = sanitizedRequest.user_agent;
       }
 
+      logger.info(`Creating token record:`, tokenData);
+
       const tokenRecord = await this.tokenModel.createToken(tokenData);
 
-      logger.info(`Email verification token created for user ${sanitizedRequest.user_id}`);
+      logger.info(`Token record created successfully:`, tokenRecord);
 
       return {
         success: true,
@@ -253,6 +271,8 @@ export class EmailVerificationService {
     userName?: string
   ): Promise<boolean> {
     try {
+      logger.info(`Starting email verification for user ${userId}`);
+
       const verificationUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/verify-email`;
 
       // Get user details if userName is not provided
@@ -271,7 +291,7 @@ export class EmailVerificationService {
         this.config.token_expiry_hours
       );
 
-      logger.info(`Verification email sent to user ${userId} using enhanced template`);
+      logger.info(`Verification email sent successfully to user ${userId}`);
       return true;
     } catch (error) {
       logger.error(`Failed to send verification email to user ${userId}:`, error);

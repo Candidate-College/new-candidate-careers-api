@@ -15,6 +15,7 @@ import { logger } from '@/utils/logger';
 import { AuthenticatedRequest } from '@/types/jwt';
 import { UserRegistrationResource } from '@/resources/userRegistrationResource';
 import { UserProfileResource } from '@/resources/userProfileResource';
+import { EmailVerificationService } from '@/services/EmailVerificationService';
 
 /**
  * User Controller
@@ -56,6 +57,28 @@ export class UserController {
       const errorResponse = createErrorResponse(result.error || 'Registration failed');
       res.status(400).json(errorResponse);
       return;
+    }
+
+    // Send verification email if token was created
+    if (result.verificationToken && result.user) {
+      try {
+        logger.info(`Sending verification email for user ${result.user.id}`);
+
+        const emailVerificationService = new EmailVerificationService();
+
+        await emailVerificationService.sendVerificationEmail(
+          result.user.id,
+          result.verificationToken,
+          result.user.email,
+          result.user.name
+        );
+        logger.info(`Verification email sent to user ${result.user.id}`);
+      } catch (emailError) {
+        logger.error('Failed to send verification email:', emailError);
+        // Don't fail registration if email fails
+      }
+    } else {
+      logger.warn('No verification token available for email sending');
     }
 
     // Use the resource to format the response
