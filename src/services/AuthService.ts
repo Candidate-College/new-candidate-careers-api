@@ -19,7 +19,7 @@ import { createResourceConflictError, createError } from '@/utils/errors';
 import { ErrorCodes } from '@/types/errors';
 
 export class AuthService implements AuthServiceInterface {
-  private userService: UserService;
+  private readonly userService: UserService;
 
   constructor() {
     this.userService = new UserService();
@@ -55,10 +55,9 @@ export class AuthService implements AuthServiceInterface {
       // Create user using UserService
       const newUser = await this.userService.createUser({
         email: userData.email,
-        username: userData.username,
-        first_name: userData.first_name,
-        last_name: userData.last_name,
+        name: `${userData.first_name} ${userData.last_name}`,
         password: userData.password,
+        role_id: 2, // Default role for regular users
       });
 
       logger.info(`User ${newUser.id} registered successfully`);
@@ -97,7 +96,7 @@ export class AuthService implements AuthServiceInterface {
         throw createError('Invalid email or password', 401, ErrorCodes.INVALID_CREDENTIALS);
       }
 
-      if (!user.is_active) {
+      if (user.status !== 'active') {
         throw createError('Account is deactivated', 401, ErrorCodes.UNAUTHORIZED);
       }
 
@@ -119,7 +118,7 @@ export class AuthService implements AuthServiceInterface {
         id: user.id.toString(),
         email: user.email,
         role: 'user',
-        isActive: user.is_active,
+        isActive: user.status === 'active',
       };
 
       logger.info(`User ${user.id} logged in successfully`);
@@ -272,7 +271,7 @@ export class AuthService implements AuthServiceInterface {
         id: user.id.toString(),
         email: user.email,
         role: 'user', // Default role, can be extended
-        isActive: user.is_active,
+        isActive: user.status === 'active',
       };
     } catch (error) {
       logger.debug(
@@ -380,14 +379,17 @@ export class AuthService implements AuthServiceInterface {
       // Return user without password hash
       const user: User = {
         id: userWithPassword.id,
+        uuid: userWithPassword.uuid,
         email: userWithPassword.email,
-        username: userWithPassword.username,
-        first_name: userWithPassword.first_name,
-        last_name: userWithPassword.last_name,
-        is_active: userWithPassword.is_active,
+        password: userWithPassword.password,
+        name: userWithPassword.name,
+        role_id: userWithPassword.role_id,
+        status: userWithPassword.status,
+        email_verified_at: userWithPassword.email_verified_at,
+        last_login_at: userWithPassword.last_login_at,
+        deleted_at: userWithPassword.deleted_at,
         created_at: userWithPassword.created_at,
         updated_at: userWithPassword.updated_at,
-        ...(userWithPassword.last_login && { last_login: userWithPassword.last_login }),
       };
       return user;
     } catch (error) {
@@ -402,7 +404,7 @@ export class AuthService implements AuthServiceInterface {
   private async updateLastLogin(userId: number): Promise<void> {
     try {
       await this.userService.updateUser(userId, {
-        last_login: new Date(),
+        last_login_at: new Date(),
       });
     } catch (error) {
       // Don't fail the login if we can't update last_login
