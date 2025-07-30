@@ -7,6 +7,7 @@ import { EmailVerificationValidator } from '@/validators/emailVerificationValida
 import { formatValidationErrorResponse } from '@/utils/errors';
 import { logger } from '@/utils/logger';
 import { EmailVerificationRequest } from '@/types/userRegistration';
+import { EmailVerificationResource } from '@/resources/emailVerificationResource';
 
 /**
  * Email Verification Controller
@@ -49,15 +50,19 @@ export class EmailVerificationController {
     });
 
     if (!result.success) {
-      const errorResponse = createErrorResponse(result.error || 'Email verification failed');
+      const errorResponse = EmailVerificationResource.formatVerificationErrorApiResponse(
+        result.error || 'Email verification failed',
+        400
+      );
       res.status(400).json(errorResponse);
       return;
     }
 
-    const response = createSuccessResponse('Email verified successfully', {
-      user_id: result.user_id,
-      message: result.message,
-    });
+    // Use the resource to format the response
+    const response = EmailVerificationResource.formatVerificationSuccessApiResponse(
+      result.user_id!,
+      new Date()
+    );
 
     logger.info(`Email verified successfully for user ${result.user_id}`);
     res.status(200).json(response);
@@ -95,13 +100,15 @@ export class EmailVerificationController {
     });
 
     if (!tokenResult.success) {
-      const errorResponse = createErrorResponse(
-        tokenResult.error || 'Failed to create verification token'
+      const errorResponse = EmailVerificationResource.formatVerificationErrorApiResponse(
+        tokenResult.error || 'Failed to create verification token',
+        400
       );
       res.status(400).json(errorResponse);
       return;
     }
 
+    // Send verification email
     const emailSent = await this.emailVerificationService.sendVerificationEmail(
       user.id,
       tokenResult.token!.token,
@@ -110,13 +117,21 @@ export class EmailVerificationController {
     );
 
     if (!emailSent) {
-      const errorResponse = createErrorResponse('Failed to send verification email');
+      const errorResponse = EmailVerificationResource.formatVerificationErrorApiResponse(
+        'Failed to send verification email',
+        500
+      );
       res.status(500).json(errorResponse);
       return;
     }
 
-    const response = createSuccessResponse('Verification email sent successfully');
-    logger.info(`Verification email resent for ${email}`);
+    // Use the resource to format the response
+    const response = EmailVerificationResource.formatResendVerificationSuccessApiResponse(
+      email,
+      new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours from now
+    );
+
+    logger.info(`Verification email resent to user ${user.id}`);
     res.status(200).json(response);
   });
 

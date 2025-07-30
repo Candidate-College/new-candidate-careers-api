@@ -13,6 +13,8 @@ import { EmailVerificationValidator } from '@/validators/emailVerificationValida
 import { formatValidationErrorResponse } from '@/utils/errors';
 import { logger } from '@/utils/logger';
 import { AuthenticatedRequest } from '@/types/jwt';
+import { UserRegistrationResource } from '@/resources/userRegistrationResource';
+import { UserProfileResource } from '@/resources/userProfileResource';
 
 /**
  * User Controller
@@ -56,18 +58,10 @@ export class UserController {
       return;
     }
 
-    const response = createSuccessResponse(
-      'User registered successfully. Verification email sent.',
-      {
-        id: result.user!.id,
-        uuid: result.user!.uuid,
-        email: result.user!.email,
-        name: result.user!.name,
-        role_id: result.user!.role_id,
-        status: result.user!.status,
-        email_verified_at: result.user!.email_verified_at,
-        created_at: result.user!.created_at,
-      }
+    // Use the resource to format the response
+    const response = UserRegistrationResource.formatRegistrationSuccessResponse(
+      result.user!,
+      result.verificationToken
     );
 
     logger.info(`User ${result.user!.id} registered successfully`);
@@ -103,10 +97,11 @@ export class UserController {
       return;
     }
 
-    const response = createSuccessResponse('Email verified successfully', {
-      user_id: result.user!.id,
-      verified_at: result.user!.email_verified_at,
-    });
+    // Use the resource to format the response
+    const response = UserRegistrationResource.formatEmailVerificationSuccessResponse(
+      result.user!.id,
+      new Date()
+    );
 
     logger.info(`Email verified successfully for user ${result.user!.id}`);
     res.status(200).json(response);
@@ -138,17 +133,21 @@ export class UserController {
       return;
     }
 
-    const response = createSuccessResponse('Verification email sent successfully');
-    logger.info(`Verification email resent for ${email}`);
+    // Use the resource to format the response
+    const response = UserRegistrationResource.formatResendVerificationSuccessResponse(
+      email,
+      new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours from now
+    );
+
+    logger.info(`Verification email resent to ${email}`);
     res.status(200).json(response);
   });
 
   /**
-   * Get current user's profile
+   * Get user profile
    */
   getUserProfile = asyncHandler(async (req: AuthenticatedRequest, res: Response): Promise<void> => {
     const userId = req.user?.id;
-
     if (!userId) {
       const errorResponse = createErrorResponse('User not authenticated');
       res.status(401).json(errorResponse);
@@ -158,41 +157,31 @@ export class UserController {
     const user = await this.userService.getUserProfile(parseInt(userId, 10));
 
     if (!user) {
-      const errorResponse = createErrorResponse('User profile not found');
+      const errorResponse = UserProfileResource.formatProfileNotFoundResponse(parseInt(userId, 10));
       res.status(404).json(errorResponse);
       return;
     }
 
-    const response = createSuccessResponse('User profile retrieved successfully', {
-      id: user.id,
-      uuid: user.uuid,
-      email: user.email,
-      name: user.name,
-      role_id: user.role_id,
-      status: user.status,
-      email_verified_at: user.email_verified_at,
-      last_login_at: user.last_login_at,
-      created_at: user.created_at,
-      updated_at: user.updated_at,
-    });
+    // Use the resource to format the response
+    const response = UserProfileResource.formatProfileViewSuccessResponse(user);
 
+    logger.info(`User profile retrieved for user ${userId}`);
     res.status(200).json(response);
   });
 
   /**
-   * Update current user's profile
+   * Update user profile
    */
   updateUserProfile = asyncHandler(
     async (req: AuthenticatedRequest, res: Response): Promise<void> => {
       const userId = req.user?.id;
-
       if (!userId) {
         const errorResponse = createErrorResponse('User not authenticated');
         res.status(401).json(errorResponse);
         return;
       }
 
-      // Validate profile update data
+      // Validate update data
       const validation = UserRegistrationValidator.validateProfileUpdateRequest(req.body);
       if (!validation.isValid) {
         logger.warn('Profile update validation failed:', validation.errors);
@@ -201,34 +190,24 @@ export class UserController {
       }
 
       const updateData: UserProfileUpdateRequest = req.body;
-      const currentUserId = parseInt(userId, 10);
-
       const result = await this.userService.updateUserProfile(
-        currentUserId,
+        parseInt(userId, 10),
         updateData,
-        currentUserId
+        parseInt(userId, 10)
       );
 
       if (!result.success) {
-        const errorResponse = createErrorResponse(result.error || 'Profile update failed');
+        const errorResponse = UserProfileResource.formatProfileUpdateErrorResponse(
+          result.error || 'Profile update failed'
+        );
         res.status(400).json(errorResponse);
         return;
       }
 
-      const response = createSuccessResponse('Profile updated successfully', {
-        id: result.user!.id,
-        uuid: result.user!.uuid,
-        email: result.user!.email,
-        name: result.user!.name,
-        role_id: result.user!.role_id,
-        status: result.user!.status,
-        email_verified_at: result.user!.email_verified_at,
-        last_login_at: result.user!.last_login_at,
-        created_at: result.user!.created_at,
-        updated_at: result.user!.updated_at,
-      });
+      // Use the resource to format the response
+      const response = UserProfileResource.formatProfileUpdateSuccessResponse(result.user!);
 
-      logger.info(`Profile updated successfully for user ${result.user!.id}`);
+      logger.info(`User profile updated for user ${userId}`);
       res.status(200).json(response);
     }
   );
