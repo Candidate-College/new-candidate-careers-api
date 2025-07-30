@@ -10,11 +10,7 @@ export class UserModel extends BaseModel<User> {
    */
   protected applySearch(query: Knex.QueryBuilder, search: string): Knex.QueryBuilder {
     return query.where(builder => {
-      builder
-        .where('email', 'ilike', `%${search}%`)
-        .orWhere('username', 'ilike', `%${search}%`)
-        .orWhere('first_name', 'ilike', `%${search}%`)
-        .orWhere('last_name', 'ilike', `%${search}%`);
+      builder.where('email', 'ilike', `%${search}%`).orWhere('name', 'ilike', `%${search}%`);
     });
   }
 
@@ -35,31 +31,10 @@ export class UserModel extends BaseModel<User> {
   }
 
   /**
-   * Find user by username
-   */
-  async findByUsername(username: string): Promise<User | null> {
-    return await this.findOneBy({ username } as Partial<User>);
-  }
-
-  /**
    * Check if email exists (excluding specific user ID)
    */
   async emailExists(email: string, excludeId?: number): Promise<boolean> {
     let query = this.db(this.tableName).where({ email });
-
-    if (excludeId) {
-      query = query.andWhere('id', '!=', excludeId);
-    }
-
-    const user = await query.first();
-    return !!user;
-  }
-
-  /**
-   * Check if username exists (excluding specific user ID)
-   */
-  async usernameExists(username: string, excludeId?: number): Promise<boolean> {
-    let query = this.db(this.tableName).where({ username });
 
     if (excludeId) {
       query = query.andWhere('id', '!=', excludeId);
@@ -78,19 +53,16 @@ export class UserModel extends BaseModel<User> {
       throw new Error('Email already exists');
     }
 
-    // Check for existing username
-    if (await this.usernameExists(userData.username)) {
-      throw new Error('Username already exists');
-    }
-
     // Create the user (password should be hashed before calling this method)
     return await this.create({
       email: userData.email,
-      username: userData.username,
-      first_name: userData.first_name,
-      last_name: userData.last_name,
-      password_hash: userData.password, // This should be hashed
-      is_active: true,
+      name: userData.name,
+      password: userData.password, // This should be hashed
+      role_id: userData.role_id,
+      status: 'inactive',
+      email_verified_at: null,
+      last_login_at: null,
+      deleted_at: null,
     } as Omit<User, 'id' | 'created_at' | 'updated_at'>);
   }
 
@@ -111,13 +83,6 @@ export class UserModel extends BaseModel<User> {
       }
     }
 
-    // Validate username uniqueness if username is being updated
-    if (updateData.username && updateData.username !== existingUser.username) {
-      if (await this.usernameExists(updateData.username, id)) {
-        throw new Error('Username already exists');
-      }
-    }
-
     return await this.update(id, updateData);
   }
 
@@ -125,28 +90,28 @@ export class UserModel extends BaseModel<User> {
    * Get active users only
    */
   async findActiveUsers(): Promise<User[]> {
-    return await this.findBy({ is_active: true } as Partial<User>);
+    return await this.findBy({ status: 'active' } as Partial<User>);
   }
 
   /**
    * Update last login timestamp
    */
   async updateLastLogin(id: number): Promise<User | null> {
-    return await this.update(id, { last_login: new Date() });
+    return await this.update(id, { last_login_at: new Date() });
   }
 
   /**
    * Deactivate user instead of deleting
    */
   async deactivateUser(id: number): Promise<User | null> {
-    return await this.update(id, { is_active: false });
+    return await this.update(id, { status: 'inactive' });
   }
 
   /**
    * Activate user
    */
   async activateUser(id: number): Promise<User | null> {
-    return await this.update(id, { is_active: true });
+    return await this.update(id, { status: 'active' });
   }
 
   /**
@@ -169,8 +134,8 @@ export class UserModel extends BaseModel<User> {
     recentlyCreated: number;
   }> {
     const total = await this.count();
-    const active = await this.count({ is_active: true } as Partial<User>);
-    const inactive = total - active;
+    const active = await this.count({ status: 'active' } as Partial<User>);
+    const inactive = await this.count({ status: 'inactive' } as Partial<User>);
 
     // Users created in the last 30 days
     const thirtyDaysAgo = new Date();

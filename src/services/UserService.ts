@@ -89,9 +89,8 @@ export class UserService {
     return await this.userModel.findByEmailWithPassword(email);
   }
 
-  async getUserByUsername(username: string): Promise<User | null> {
-    return await this.userModel.findByUsername(username);
-  }
+  // Note: Username functionality has been removed as per current User model
+  // Users are now identified by email only
 
   async getUserStats(): Promise<{
     total: number;
