@@ -41,3 +41,8 @@ Thumbs.db
 # Temporary files
 *.tmp
 *.temp
+
+# Cursor-related
+.cursor/rules/byterover-rules.mdc
+.github/copilot-instructions.md
+.mcp.json
