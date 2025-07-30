@@ -8,7 +8,6 @@
  */
 
 import {
-  EmailVerificationToken,
   CreateEmailVerificationTokenRequest,
   VerifyEmailVerificationTokenRequest,
   EmailVerificationServiceResult,
@@ -16,18 +15,20 @@ import {
   TokenStatistics,
   EmailVerificationConfig,
 } from '@/types/emailVerification';
-import { UserService } from './UserService';
+import { EmailVerificationTokenModel, UserModel } from '@/models';
 import { EmailVerificationValidator } from '@/validators/emailVerificationValidator';
 import { logger } from '@/utils/logger';
 import { generateUUID } from '@/utils/uuid';
 import { mailer } from '@/mails';
 
 export class EmailVerificationService {
-  private userService: UserService;
+  private tokenModel: EmailVerificationTokenModel;
+  private userModel: UserModel;
   private config: EmailVerificationConfig;
 
   constructor(config: Partial<EmailVerificationConfig> = {}) {
-    this.userService = new UserService();
+    this.tokenModel = new EmailVerificationTokenModel();
+    this.userModel = new UserModel();
     this.config = {
       token_expiry_hours: 24,
       max_tokens_per_user: 5,
@@ -59,7 +60,7 @@ export class EmailVerificationService {
       const sanitizedRequest = EmailVerificationValidator.sanitizeCreateTokenData(request);
 
       // Check if user exists
-      const user = await this.userService.getUserById(sanitizedRequest.user_id);
+      const user = await this.userModel.findById(sanitizedRequest.user_id);
       if (!user) {
         return {
           success: false,
@@ -82,7 +83,7 @@ export class EmailVerificationService {
       }
 
       // Check token limit per user
-      const existingTokens = await this.getActiveTokensForUser(sanitizedRequest.user_id);
+      const existingTokens = await this.tokenModel.findActiveByUserId(sanitizedRequest.user_id);
       if (existingTokens.length >= this.config.max_tokens_per_user) {
         return {
           success: false,
@@ -100,23 +101,30 @@ export class EmailVerificationService {
           (sanitizedRequest.expires_in_hours || this.config.token_expiry_hours) * 60 * 60 * 1000
       );
 
-      // Create token record (this would be implemented in a model)
-      const tokenRecord: EmailVerificationToken = {
-        id: 0, // Will be set by database
+      // Create token record
+      const tokenData: {
+        token: string;
+        user_id: number;
+        type: 'email_verification' | 'password_reset';
+        expires_at: Date;
+        ip_address?: string;
+        user_agent?: string;
+      } = {
         token,
         user_id: sanitizedRequest.user_id,
         type: sanitizedRequest.type,
-        is_used: false,
         expires_at: expiresAt,
-        used_at: null,
-        ip_address: sanitizedRequest.ip_address || null,
-        user_agent: sanitizedRequest.user_agent || null,
-        created_at: new Date(),
-        updated_at: new Date(),
       };
 
-      // TODO: Implement token storage in database
-      // const savedToken = await this.tokenModel.create(tokenRecord);
+      if (sanitizedRequest.ip_address) {
+        tokenData.ip_address = sanitizedRequest.ip_address;
+      }
+
+      if (sanitizedRequest.user_agent) {
+        tokenData.user_agent = sanitizedRequest.user_agent;
+      }
+
+      const tokenRecord = await this.tokenModel.createToken(tokenData);
 
       logger.info(`Email verification token created for user ${sanitizedRequest.user_id}`);
 
@@ -161,7 +169,7 @@ export class EmailVerificationService {
       const sanitizedRequest = EmailVerificationValidator.sanitizeVerifyTokenData(request);
 
       // Find token
-      const token = await this.findTokenByValue(sanitizedRequest.token);
+      const token = await this.tokenModel.findByToken(sanitizedRequest.token);
       if (!token) {
         return {
           success: false,
@@ -207,15 +215,10 @@ export class EmailVerificationService {
       }
 
       // Mark token as used
-      token.is_used = true;
-      token.used_at = new Date();
-      token.updated_at = new Date();
-
-      // TODO: Update token in database
-      // await this.tokenModel.update(token.id, token);
+      await this.tokenModel.markAsUsed(token.id);
 
       // Update user email verification status
-      await this.userService.updateUser(token.user_id, {
+      await this.userModel.updateUser(token.user_id, {
         email_verified_at: new Date(),
       });
 
@@ -255,7 +258,7 @@ export class EmailVerificationService {
       // Get user details if userName is not provided
       let displayName = userName;
       if (!displayName) {
-        const user = await this.userService.getUserById(userId);
+        const user = await this.userModel.findById(userId);
         displayName = user?.name || user?.email?.split('@')[0] || 'User';
       }
 
@@ -297,7 +300,7 @@ export class EmailVerificationService {
       // Get user details if userName is not provided
       let displayName = options.userName;
       if (!displayName) {
-        const user = await this.userService.getUserById(userId);
+        const user = await this.userModel.findById(userId);
         displayName = user?.name || user?.email?.split('@')[0] || 'User';
       }
 
@@ -323,13 +326,11 @@ export class EmailVerificationService {
    */
   async cleanupExpiredTokens(): Promise<TokenCleanupResult> {
     try {
-      const expiredTokens = await this.findExpiredTokens();
+      const expiredTokens = await this.tokenModel.findExpired();
       let deletedCount = 0;
 
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       for (const token of expiredTokens) {
-        // TODO: Delete token from database
-        // await this.tokenModel.delete(token.id);
+        await this.tokenModel.deleteToken(token.id);
         deletedCount++;
       }
 
@@ -353,22 +354,7 @@ export class EmailVerificationService {
    */
   async getTokenStatistics(): Promise<TokenStatistics> {
     try {
-      const allTokens = await this.getAllTokens();
-      const activeTokens = allTokens.filter(
-        token => !token.is_used && token.expires_at > new Date()
-      );
-      const expiredTokens = allTokens.filter(token => token.expires_at < new Date());
-      const usedTokens = allTokens.filter(token => token.is_used);
-
-      return {
-        total_tokens: allTokens.length,
-        active_tokens: activeTokens.length,
-        expired_tokens: expiredTokens.length,
-        used_tokens: usedTokens.length,
-        email_verification_tokens: allTokens.filter(token => token.type === 'email_verification')
-          .length,
-        password_reset_tokens: allTokens.filter(token => token.type === 'password_reset').length,
-      };
+      return await this.tokenModel.getStatistics();
     } catch (error) {
       logger.error('Error getting token statistics:', error);
       return {
@@ -380,43 +366,5 @@ export class EmailVerificationService {
         password_reset_tokens: 0,
       };
     }
-  }
-
-  /**
-   * Get active tokens for a user
-   */
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  private async getActiveTokensForUser(userId: number): Promise<EmailVerificationToken[]> {
-    // TODO: Implement database query
-    // return await this.tokenModel.findActiveByUserId(userId);
-    return [];
-  }
-
-  /**
-   * Find token by value
-   */
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  private async findTokenByValue(tokenValue: string): Promise<EmailVerificationToken | null> {
-    // TODO: Implement database query
-    // return await this.tokenModel.findByToken(tokenValue);
-    return null;
-  }
-
-  /**
-   * Find expired tokens
-   */
-  private async findExpiredTokens(): Promise<EmailVerificationToken[]> {
-    // TODO: Implement database query
-    // return await this.tokenModel.findExpired();
-    return [];
-  }
-
-  /**
-   * Get all tokens
-   */
-  private async getAllTokens(): Promise<EmailVerificationToken[]> {
-    // TODO: Implement database query
-    // return await this.tokenModel.findAll();
-    return [];
   }
 }
