@@ -9,13 +9,14 @@ import { asyncHandler } from '@/middleware/errorHandler';
 import { logger } from '@/utils/logger';
 import { formatValidationErrorResponse } from '@/utils/errors';
 import { createInMemorySessionService } from '@/services/SessionServiceFactory';
+import { SessionService } from '@/services/SessionService';
 import { AuthenticatedRequest } from '@/types/jwt';
 import { AuditLogService } from '@/services/AuditLogService';
 
 export class AuthController {
-  private authService: AuthService;
-  private sessionService: any;
-  private auditLogService: AuditLogService;
+  private readonly authService: AuthService;
+  private readonly sessionService: SessionService;
+  private readonly auditLogService: AuditLogService;
 
   constructor() {
     this.authService = new AuthService();
@@ -31,7 +32,7 @@ export class AuthController {
 
     // Sanitize and validate request data
     const sanitizedData = AuthValidator.sanitizeRegisterData(req.body);
-    const validation = AuthValidator.validateRegisterRequest(sanitizedData);
+    const validation = AuthValidator.validateRegisterRequest(req.body);
 
     if (!validation.isValid) {
       logger.warn('Registration validation failed:', validation.errors);
@@ -108,8 +109,8 @@ export class AuthController {
       // Create session for the user
       const session = await this.sessionService.createSession({
         userId: user.id,
-        userAgent: req.get('User-Agent'),
-        ipAddress: req.ip,
+        userAgent: req.get('User-Agent') as string,
+        ipAddress: req.ip as string,
         metadata: {
           loginMethod: 'email',
           rememberMe: sanitizedData.remember_me || false,
@@ -350,8 +351,8 @@ export class AuthController {
    */
   private extractSessionId(req: Request): string | null {
     // Try to extract from Authorization header
-    const authHeader = req.get('Authorization');
-    if (authHeader && authHeader.startsWith('Bearer ')) {
+    const authHeader = req.get?.('Authorization');
+    if (authHeader?.startsWith('Bearer ')) {
       const token = authHeader.substring(7);
       // For now, use token as session ID (in production, you'd decode and extract session ID)
       return token;
