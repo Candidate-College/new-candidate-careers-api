@@ -1,87 +1,14 @@
 import { Router } from 'express';
 import { AuthController } from '@/controllers/AuthController';
-import { authRateLimit } from '@/middleware/rateLimitMiddleware';
+import { UserController } from '@/controllers/UserController';
+import { EmailVerificationController } from '@/controllers/EmailVerificationController';
+import { authRateLimit, generalRateLimit } from '@/middleware/rateLimitMiddleware';
+import { JWTMiddleware } from '@/middleware/jwtMiddleware';
 
 const router = Router();
 const authController = new AuthController();
-
-/**
- * @swagger
- * /auth/register:
- *   post:
- *     summary: Register a new user
- *     tags: [Authentication]
- *     description: Create a new user account with email, username, and password
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             $ref: '#/components/schemas/RegisterRequest'
- *           example:
- *             email: "user@example.com"
- *             username: "johndoe"
- *             first_name: "John"
- *             last_name: "Doe"
- *             password: "securePassword123"
- *             confirm_password: "securePassword123"
- *     responses:
- *       201:
- *         description: User registered successfully
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/RegisterResponse'
- *             example:
- *               message: "User registered successfully"
- *               data:
- *                 user:
- *                   id: 1
- *                   email: "user@example.com"
- *                   username: "johndoe"
- *                   first_name: "John"
- *                   last_name: "Doe"
- *                   is_active: true
- *                   created_at: "2024-01-01T00:00:00.000Z"
- *                   updated_at: "2024-01-01T00:00:00.000Z"
- *               timestamp: "2024-01-01T00:00:00.000Z"
- *       400:
- *         description: Validation error
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 error:
- *                   type: string
- *                 message:
- *                   type: string
- *                 errors:
- *                   type: array
- *                   items:
- *                     $ref: '#/components/schemas/ValidationError'
- *             example:
- *               error: "Validation failed"
- *               message: "Validation failed"
- *               errors:
- *                 - field: "email"
- *                   message: "Email is required"
- *                 - field: "password"
- *                   message: "Password must be at least 8 characters"
- *       409:
- *         description: User already exists
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/ErrorResponse'
- *       500:
- *         description: Internal server error
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/ErrorResponse'
- */
-router.post('/register', authRateLimit(), authController.register);
+const userController = new UserController();
+const emailVerificationController = new EmailVerificationController();
 
 /**
  * @swagger
@@ -378,5 +305,250 @@ router.get('/session', authRateLimit(), authController.getSessionStatus);
  *               $ref: '#/components/schemas/ErrorResponse'
  */
 router.post('/revoke', authRateLimit(), authController.revokeAllSessions);
+
+/**
+ * @swagger
+ * /auth/register:
+ *   post:
+ *     summary: Register a new user (Super Admin only)
+ *     tags: [Authentication]
+ *     description: Create a new user account with email verification (Super Admin only)
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *               - name
+ *               - password
+ *               - role_id
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 description: User's email address
+ *               name:
+ *                 type: string
+ *                 minLength: 2
+ *                 maxLength: 100
+ *                 description: User's full name
+ *               password:
+ *                 type: string
+ *                 minLength: 8
+ *                 description: User's password
+ *               role_id:
+ *                 type: integer
+ *                 description: User's role ID
+ *           example:
+ *             email: "newuser@example.com"
+ *             name: "John Doe"
+ *             password: "securePassword123"
+ *             role_id: 2
+ *     responses:
+ *       201:
+ *         description: User registered successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: integer
+ *                     uuid:
+ *                       type: string
+ *                     email:
+ *                       type: string
+ *                     name:
+ *                       type: string
+ *                     role_id:
+ *                       type: integer
+ *                     status:
+ *                       type: string
+ *                     email_verified_at:
+ *                       type: string
+ *                       nullable: true
+ *                     created_at:
+ *                       type: string
+ *                 timestamp:
+ *                   type: string
+ *             example:
+ *               message: "User registered successfully. Verification email sent."
+ *               data:
+ *                 id: 1
+ *                 uuid: "user-uuid"
+ *                 email: "newuser@example.com"
+ *                 name: "John Doe"
+ *                 role_id: 2
+ *                 status: "inactive"
+ *                 email_verified_at: null
+ *                 created_at: "2024-01-01T00:00:00.000Z"
+ *               timestamp: "2024-01-01T00:00:00.000Z"
+ *       400:
+ *         description: Validation error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       401:
+ *         description: Unauthorized - Super Admin access required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       409:
+ *         description: User already exists
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ */
+router.post(
+  '/register',
+  authRateLimit(),
+  JWTMiddleware.authenticateToken(),
+  JWTMiddleware.requireRole('super_admin'),
+  userController.registerUser
+);
+
+/**
+ * @swagger
+ * /auth/verify-email:
+ *   post:
+ *     summary: Verify email with token
+ *     tags: [Authentication]
+ *     description: Verify user email using verification token
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - token
+ *               - email
+ *             properties:
+ *               token:
+ *                 type: string
+ *                 description: Email verification token
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 description: User's email address
+ *           example:
+ *             token: "verification-token-uuid"
+ *             email: "user@example.com"
+ *     responses:
+ *       200:
+ *         description: Email verified successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     user_id:
+ *                       type: integer
+ *                     message:
+ *                       type: string
+ *                 timestamp:
+ *                   type: string
+ *             example:
+ *               message: "Email verified successfully"
+ *               data:
+ *                 user_id: 1
+ *                 message: "Email verification completed"
+ *               timestamp: "2024-01-01T00:00:00.000Z"
+ *       400:
+ *         description: Invalid token or validation error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ */
+router.post('/verify-email', generalRateLimit(), emailVerificationController.verifyEmail);
+
+/**
+ * @swagger
+ * /auth/resend-verification:
+ *   post:
+ *     summary: Resend verification email
+ *     tags: [Authentication]
+ *     description: Resend email verification token to user
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 description: User's email address
+ *           example:
+ *             email: "user@example.com"
+ *     responses:
+ *       200:
+ *         description: Verification email sent successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *                 timestamp:
+ *                   type: string
+ *             example:
+ *               message: "Verification email sent successfully"
+ *               data: {}
+ *               timestamp: "2024-01-01T00:00:00.000Z"
+ *       400:
+ *         description: User not found or validation error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ */
+router.post(
+  '/resend-verification',
+  generalRateLimit(),
+  emailVerificationController.resendVerificationEmail
+);
 
 export default router;

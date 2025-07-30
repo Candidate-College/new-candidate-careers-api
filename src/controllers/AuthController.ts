@@ -10,14 +10,17 @@ import { logger } from '@/utils/logger';
 import { formatValidationErrorResponse } from '@/utils/errors';
 import { createInMemorySessionService } from '@/services/SessionServiceFactory';
 import { AuthenticatedRequest } from '@/types/jwt';
+import { AuditLogService } from '@/services/AuditLogService';
 
 export class AuthController {
   private authService: AuthService;
   private sessionService: any;
+  private auditLogService: AuditLogService;
 
   constructor() {
     this.authService = new AuthService();
     this.sessionService = createInMemorySessionService();
+    this.auditLogService = new AuditLogService();
   }
 
   /**
@@ -38,6 +41,18 @@ export class AuthController {
 
     // Register user
     const newUser = await this.authService.register(sanitizedData);
+
+    // Log registration event with IP and user agent
+    await this.auditLogService.logUserRegistration(
+      newUser.id,
+      {
+        email: sanitizedData.email,
+        name: `${sanitizedData.first_name} ${sanitizedData.last_name}`,
+        role_id: 2,
+      },
+      req.ip,
+      req.get('User-Agent')
+    );
 
     // Format response
     const userData = AuthResource.formatRegisterResponse(newUser);
@@ -64,49 +79,75 @@ export class AuthController {
       return;
     }
 
-    // Login user
-    const loginData = await this.authService.login({
-      email: sanitizedData.email,
-      password: sanitizedData.password,
-      ...(sanitizedData.remember_me !== undefined && { rememberMe: sanitizedData.remember_me }),
-    });
+    try {
+      // Login user
+      const loginData = await this.authService.login({
+        email: sanitizedData.email,
+        password: sanitizedData.password,
+        ...(sanitizedData.remember_me !== undefined && { rememberMe: sanitizedData.remember_me }),
+      });
 
-    // Get full user data for response
-    const user = await this.authService.getUserFromToken(loginData.tokens.accessToken);
-    if (!user) {
-      logger.error('Failed to get user data after login');
-      res.status(500).json({ error: 'Internal server error' });
-      return;
+      // Get full user data for response
+      const user = await this.authService.getUserFromToken(loginData.tokens.accessToken);
+      if (!user) {
+        logger.error('Failed to get user data after login');
+        res.status(500).json({ error: 'Internal server error' });
+        return;
+      }
+
+      // Get complete user data from database
+      const userService = new (await import('@/services/UserService')).UserService();
+      const fullUser = await userService.getUserById(parseInt(user.id, 10));
+
+      if (!fullUser) {
+        logger.error('Failed to get full user data after login');
+        res.status(500).json({ error: 'Internal server error' });
+        return;
+      }
+
+      // Create session for the user
+      const session = await this.sessionService.createSession({
+        userId: user.id,
+        userAgent: req.get('User-Agent'),
+        ipAddress: req.ip,
+        metadata: {
+          loginMethod: 'email',
+          rememberMe: sanitizedData.remember_me || false,
+        },
+      });
+
+      // Log successful login with IP and user agent
+      await this.auditLogService.logLogin(
+        parseInt(user.id, 10),
+        true,
+        undefined,
+        req.ip,
+        req.get('User-Agent')
+      );
+
+      // Format response
+      const responseData = LoginResource.formatLoginResponse(loginData, fullUser);
+      const successResponse = createSuccessResponse('Login successful', responseData);
+
+      logger.info(`User ${user.id} logged in successfully with session ${session.id}`);
+
+      res.status(200).json(successResponse);
+    } catch (error) {
+      // Log failed login attempt
+      await this.auditLogService.logLogin(
+        0, // Unknown user ID
+        false,
+        error instanceof Error ? error.message : 'Login failed',
+        req.ip,
+        req.get('User-Agent')
+      );
+
+      logger.error('Login failed:', error);
+      res.status(401).json({
+        error: 'Login failed',
+        message: error instanceof Error ? error.message : 'Invalid credentials',
+      });
     }
-
-    // Get complete user data from database
-    const userService = new (await import('@/services/UserService')).UserService();
-    const fullUser = await userService.getUserById(parseInt(user.id, 10));
-
-    if (!fullUser) {
-      logger.error('Failed to get full user data after login');
-      res.status(500).json({ error: 'Internal server error' });
-      return;
-    }
-
-    // Create session for the user
-    const session = await this.sessionService.createSession({
-      userId: user.id,
-      userAgent: req.get('User-Agent'),
-      ipAddress: req.ip,
-      metadata: {
-        loginMethod: 'email',
-        rememberMe: sanitizedData.remember_me || false,
-      },
-    });
-
-    // Format response
-    const responseData = LoginResource.formatLoginResponse(loginData, fullUser);
-    const successResponse = createSuccessResponse('Login successful', responseData);
-
-    logger.info(`User ${user.id} logged in successfully with session ${session.id}`);
-
-    res.status(200).json(successResponse);
   });
 
   /**
@@ -176,6 +217,9 @@ export class AuthController {
         await this.sessionService.invalidateSession(sessionId);
         logger.info(`Session ${sessionId} invalidated during logout`);
       }
+
+      // Log logout event with IP and user agent
+      await this.auditLogService.logLogout(parseInt(authReq.user.id, 10), req.ip);
 
       const successResponse = createSuccessResponse('Logout successful');
 

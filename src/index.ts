@@ -19,6 +19,7 @@ import { corsMiddleware } from '@/middleware/corsMiddleware';
 import { moderateSecurityHeaders } from '@/middleware/securityHeaders';
 import { moderateSanitizer } from '@/middleware/inputSanitizer';
 import { generalRateLimit } from '@/middleware/rateLimitMiddleware';
+import { auditLoggingMiddleware } from '@/middleware/auditLoggingMiddleware';
 import apiRoutes from '@/routes';
 import { logger } from '@/utils/logger';
 import { connectDatabase } from '@/config/database';
@@ -49,6 +50,14 @@ app.use(cookieValidationMiddleware);
 
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// Audit logging middleware - must be added before routes
+app.use(auditLoggingMiddleware.logAuthAttempts);
+app.use(auditLoggingMiddleware.logUserRegistration);
+app.use(auditLoggingMiddleware.logEmailVerification);
+app.use(auditLoggingMiddleware.logFailedAuthAttempts);
+app.use(auditLoggingMiddleware.logSessionEvents);
+app.use(auditLoggingMiddleware.logSecurityEvents);
 
 // Swagger documentation setup
 const specs = swaggerJsdoc(swaggerOptions);

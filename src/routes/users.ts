@@ -1,5 +1,7 @@
 import { Router } from 'express';
 import { UserController } from '@/controllers/UserController';
+import { JWTMiddleware } from '@/middleware/jwtMiddleware';
+import { generalRateLimit } from '@/middleware/rateLimitMiddleware';
 
 const router = Router();
 const userController = new UserController();
@@ -302,5 +304,200 @@ router.put('/:id', userController.updateUser);
  *               $ref: '#/components/schemas/ErrorResponse'
  */
 router.delete('/:id', userController.deleteUser);
+
+/**
+ * @swagger
+ * /users/profile:
+ *   get:
+ *     summary: Get current user's profile
+ *     tags: [Users]
+ *     description: Retrieve the current authenticated user's profile information
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: User profile retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: integer
+ *                     uuid:
+ *                       type: string
+ *                     email:
+ *                       type: string
+ *                     name:
+ *                       type: string
+ *                     role_id:
+ *                       type: integer
+ *                     status:
+ *                       type: string
+ *                     email_verified_at:
+ *                       type: string
+ *                       nullable: true
+ *                     last_login_at:
+ *                       type: string
+ *                       nullable: true
+ *                     created_at:
+ *                       type: string
+ *                     updated_at:
+ *                       type: string
+ *                 timestamp:
+ *                   type: string
+ *             example:
+ *               message: "User profile retrieved successfully"
+ *               data:
+ *                 id: 1
+ *                 uuid: "user-uuid"
+ *                 email: "user@example.com"
+ *                 name: "John Doe"
+ *                 role_id: 2
+ *                 status: "active"
+ *                 email_verified_at: "2024-01-01T00:00:00.000Z"
+ *                 last_login_at: "2024-01-01T00:00:00.000Z"
+ *                 created_at: "2024-01-01T00:00:00.000Z"
+ *                 updated_at: "2024-01-01T00:00:00.000Z"
+ *               timestamp: "2024-01-01T00:00:00.000Z"
+ *       401:
+ *         description: Unauthorized - Authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       404:
+ *         description: User profile not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ */
+router.get(
+  '/profile',
+  generalRateLimit(),
+  JWTMiddleware.authenticateToken(),
+  userController.getUserProfile
+);
+
+/**
+ * @swagger
+ * /users/profile:
+ *   put:
+ *     summary: Update current user's profile
+ *     tags: [Users]
+ *     description: Update the current authenticated user's profile information
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *                 minLength: 2
+ *                 maxLength: 100
+ *                 description: User's full name
+ *               current_password:
+ *                 type: string
+ *                 description: Current password (required for sensitive changes)
+ *               new_password:
+ *                 type: string
+ *                 minLength: 8
+ *                 description: New password (optional)
+ *           example:
+ *             name: "Updated Name"
+ *             current_password: "currentPassword123"
+ *             new_password: "newPassword123"
+ *     responses:
+ *       200:
+ *         description: Profile updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: integer
+ *                     uuid:
+ *                       type: string
+ *                     email:
+ *                       type: string
+ *                     name:
+ *                       type: string
+ *                     role_id:
+ *                       type: integer
+ *                     status:
+ *                       type: string
+ *                     email_verified_at:
+ *                       type: string
+ *                       nullable: true
+ *                     last_login_at:
+ *                       type: string
+ *                       nullable: true
+ *                     created_at:
+ *                       type: string
+ *                     updated_at:
+ *                       type: string
+ *                 timestamp:
+ *                   type: string
+ *             example:
+ *               message: "Profile updated successfully"
+ *               data:
+ *                 id: 1
+ *                 uuid: "user-uuid"
+ *                 email: "user@example.com"
+ *                 name: "Updated Name"
+ *                 role_id: 2
+ *                 status: "active"
+ *                 email_verified_at: "2024-01-01T00:00:00.000Z"
+ *                 last_login_at: "2024-01-01T00:00:00.000Z"
+ *                 created_at: "2024-01-01T00:00:00.000Z"
+ *                 updated_at: "2024-01-01T00:00:00.000Z"
+ *               timestamp: "2024-01-01T00:00:00.000Z"
+ *       400:
+ *         description: Validation error or invalid current password
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       401:
+ *         description: Unauthorized - Authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ */
+router.put(
+  '/profile',
+  generalRateLimit(),
+  JWTMiddleware.authenticateToken(),
+  userController.updateUserProfile
+);
 
 export default router;

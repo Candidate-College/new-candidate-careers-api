@@ -3,40 +3,40 @@ import { MailerService } from '@/config/mailer';
 
 declare module '@/config/mailer' {
   interface MailerService {
-    sendVerificationEmail(
+    sendEmailVerificationTemplate(
       to: string,
+      userName: string,
       verificationToken: string,
       verificationUrl: string,
-      userName?: string,
       expiryHours?: number
     ): Promise<nodemailer.SentMessageInfo>;
   }
 }
 
 /**
- * Send an enhanced email verification email with professional design
+ * Send a professional email verification email with modern design
  */
-MailerService.prototype.sendVerificationEmail = async function (
+MailerService.prototype.sendEmailVerificationTemplate = async function (
   to: string,
+  userName: string,
   verificationToken: string,
   verificationUrl: string,
-  userName?: string,
   expiryHours: number = 24
 ): Promise<nodemailer.SentMessageInfo> {
   const subject = 'Verify Your Email Address - Complete Your Registration';
+
   const verificationLink = `${verificationUrl}?token=${verificationToken}`;
-  const displayName = userName || to.split('@')[0];
 
   const text = `
-Hello ${displayName},
+Hello ${userName},
 
-Thank you for registering with us! To complete your account setup and ensure the security of your account, please verify your email address by clicking the link below:
+Thank you for registering with us! To complete your account setup, please verify your email address by clicking the link below:
 
 ${verificationLink}
 
-This verification link will expire in ${expiryHours} hours for security reasons.
+This verification link will expire in ${expiryHours} hours.
 
-If you didn't create an account with us, please ignore this email. Your account security is important to us.
+If you didn't create an account with us, please ignore this email.
 
 Best regards,
 The Team
@@ -168,7 +168,7 @@ The Team
         
         <div class="content">
             <div class="greeting">
-                Hello ${displayName},
+                Hello ${userName},
             </div>
             
             <div class="message">
