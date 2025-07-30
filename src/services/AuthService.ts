@@ -2,6 +2,7 @@ import { UserService } from './UserService';
 import { JWTUtils } from '@/utils/jwt';
 import { logger } from '@/utils/logger';
 import { PasswordUtils } from '@/utils/password';
+import { AuditLogService } from './AuditLogService';
 import {
   LoginCredentials,
   LoginResponse,
@@ -20,9 +21,11 @@ import { ErrorCodes } from '@/types/errors';
 
 export class AuthService implements AuthServiceInterface {
   private readonly userService: UserService;
+  private readonly auditLogService: AuditLogService;
 
   constructor() {
     this.userService = new UserService();
+    this.auditLogService = new AuditLogService();
   }
 
   /**
@@ -60,6 +63,18 @@ export class AuthService implements AuthServiceInterface {
         role_id: 2, // Default role for regular users
       });
 
+      // Log successful registration
+      await this.auditLogService.logUserRegistration(
+        newUser.id,
+        {
+          email: userData.email,
+          name: `${userData.first_name} ${userData.last_name}`,
+          role_id: 2,
+        },
+        undefined, // IP address not available in this context
+        undefined // User agent not available in this context
+      );
+
       logger.info(`User ${newUser.id} registered successfully`);
 
       return newUser;
@@ -93,10 +108,28 @@ export class AuthService implements AuthServiceInterface {
       const user = await this.validateUserCredentials(email, password);
 
       if (!user) {
+        // Log failed login attempt
+        await this.auditLogService.logLogin(
+          0, // Unknown user ID
+          false,
+          'Invalid email or password',
+          undefined, // IP address not available in this context
+          undefined // User agent not available in this context
+        );
+
         throw createError('Invalid email or password', 401, ErrorCodes.INVALID_CREDENTIALS);
       }
 
       if (user.status !== 'active') {
+        // Log failed login attempt due to inactive account
+        await this.auditLogService.logLogin(
+          user.id,
+          false,
+          'Account is deactivated',
+          undefined, // IP address not available in this context
+          undefined // User agent not available in this context
+        );
+
         throw createError('Account is deactivated', 401, ErrorCodes.UNAUTHORIZED);
       }
 
@@ -112,6 +145,15 @@ export class AuthService implements AuthServiceInterface {
 
       // Update user's last login timestamp
       await this.updateLastLogin(user.id);
+
+      // Log successful login
+      await this.auditLogService.logLogin(
+        user.id,
+        true,
+        undefined,
+        undefined, // IP address not available in this context
+        undefined // User agent not available in this context
+      );
 
       // Create authenticated user response
       const authenticatedUser: AuthenticatedUser = {
@@ -145,6 +187,12 @@ export class AuthService implements AuthServiceInterface {
   async logout(userId: string): Promise<void> {
     try {
       logger.info(`Logout for user: ${userId}`);
+
+      // Log logout event
+      await this.auditLogService.logLogout(
+        parseInt(userId, 10),
+        undefined // IP address not available in this context
+      );
 
       // In a stateless JWT system, logout is primarily handled client-side
       // by clearing cookies/tokens. However, we can log the event and
