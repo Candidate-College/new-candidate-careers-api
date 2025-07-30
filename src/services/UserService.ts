@@ -8,7 +8,7 @@ import {
 import { UserRegistrationRequest, UserProfileUpdateRequest } from '@/types/userRegistration';
 import { createPaginatedResponse, calculatePaginationMeta } from '@/utils/response';
 import { createError } from '@/middleware/errorHandler';
-import { UserModel } from '@/models';
+import { UserModel, UserWithRole } from '@/models';
 import { PasswordUtils } from '@/utils/password';
 import { UserRegistrationValidator } from '@/validators/userRegistrationValidator';
 import { PasswordValidator } from '@/validators/passwordValidator';
@@ -84,10 +84,20 @@ export class UserService {
     return await this.userModel.findByEmail(email);
   }
 
+  async getUserByEmailWithRole(email: string): Promise<UserWithRole | null> {
+    return await this.userModel.findByEmailWithRole(email);
+  }
+
   async getUserByEmailWithPassword(
     email: string
   ): Promise<(User & { password_hash: string }) | null> {
     return await this.userModel.findByEmailWithPassword(email);
+  }
+
+  async getUserByEmailWithPasswordAndRole(
+    email: string
+  ): Promise<(UserWithRole & { password_hash: string }) | null> {
+    return await this.userModel.findByEmailWithPasswordAndRole(email);
   }
 
   // Note: Username functionality has been removed as per current User model

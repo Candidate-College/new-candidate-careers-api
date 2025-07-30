@@ -1,7 +1,13 @@
 import { BaseModel } from './BaseModel';
 import { User, CreateUserRequest } from '@/types';
 import { Knex } from 'knex';
-import { isValidUUID } from '@/utils/uuid';
+import { isValidUUID, generateUUID } from '@/utils/uuid';
+
+export interface UserWithRole extends User {
+  role_name: string;
+  role_display_name: string;
+  role_description: string;
+}
 
 export class UserModel extends BaseModel<User> {
   protected tableName = 'users';
@@ -23,10 +29,48 @@ export class UserModel extends BaseModel<User> {
   }
 
   /**
+   * Find user by email with role information
+   */
+  async findByEmailWithRole(email: string): Promise<UserWithRole | null> {
+    const user = await this.db(this.tableName)
+      .select(
+        'users.*',
+        'roles.name as role_name',
+        'roles.display_name as role_display_name',
+        'roles.description as role_description'
+      )
+      .leftJoin('roles', 'users.role_id', 'roles.id')
+      .where({ 'users.email': email })
+      .first();
+
+    return user || null;
+  }
+
+  /**
    * Find user by email with password hash for authentication
    */
   async findByEmailWithPassword(email: string): Promise<(User & { password_hash: string }) | null> {
     const user = await this.db(this.tableName).select('*').where({ email }).first();
+
+    return user || null;
+  }
+
+  /**
+   * Find user by email with password hash and role information for authentication
+   */
+  async findByEmailWithPasswordAndRole(
+    email: string
+  ): Promise<(UserWithRole & { password_hash: string }) | null> {
+    const user = await this.db(this.tableName)
+      .select(
+        'users.*',
+        'roles.name as role_name',
+        'roles.display_name as role_display_name',
+        'roles.description as role_description'
+      )
+      .leftJoin('roles', 'users.role_id', 'roles.id')
+      .where({ 'users.email': email })
+      .first();
 
     return user || null;
   }
@@ -53,8 +97,13 @@ export class UserModel extends BaseModel<User> {
     if (await this.emailExists(userData.email)) {
       throw new Error('Email already exists');
     }
+
+    // Generate UUID for new user
+    const uuid = generateUUID();
+
     // Create the user (password should be hashed before calling this method)
     return await this.create({
+      uuid,
       email: userData.email,
       name: userData.name,
       password: userData.password, // This should be hashed

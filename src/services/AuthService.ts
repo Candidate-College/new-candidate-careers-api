@@ -14,6 +14,7 @@ import {
   JWTUser,
   AuthServiceInterface,
 } from '@/types/jwt';
+import { UserWithRole } from '@/models';
 import { User } from '@/types';
 import { RegisterRequest, LoginLockoutInfo } from '@/types/auth';
 import { createResourceConflictError, createError } from '@/utils/errors';
@@ -147,11 +148,11 @@ export class AuthService implements AuthServiceInterface {
         AuthService.lockoutMap.delete(email);
       }
 
-      // Create JWT user object
+      // Create JWT user object with actual role name
       const jwtUser: JWTUser = {
         id: user.id.toString(),
         email: user.email,
-        role: 'user', // Default role, can be extended based on user data
+        role: user.role_name || 'user', // Use actual role name from database
       };
 
       // Generate token pair
@@ -166,7 +167,7 @@ export class AuthService implements AuthServiceInterface {
       const authenticatedUser: AuthenticatedUser = {
         id: user.id.toString(),
         email: user.email,
-        role: 'user',
+        role: user.role_name || 'user',
         isActive: user.status === 'active',
       };
 
@@ -185,7 +186,7 @@ export class AuthService implements AuthServiceInterface {
         throw error;
       }
 
-      // For other errors, throw a generic login error to avoid exposing sensitive information
+      // For other errors, throw a generic login error
       throw createError('Login failed', 500, ErrorCodes.INTERNAL_SERVER_ERROR);
     }
   }
@@ -315,8 +316,8 @@ export class AuthService implements AuthServiceInterface {
       // Verify and decode the token
       const payload = JWTUtils.verifyToken(token, 'access');
 
-      // Get full user information from database
-      const user = await this.userService.getUserById(parseInt(payload.sub, 10));
+      // Get full user information from database with role
+      const user = await this.userService.getUserByEmailWithRole(payload.email || '');
       if (!user) {
         return null;
       }
@@ -324,7 +325,7 @@ export class AuthService implements AuthServiceInterface {
       return {
         id: user.id.toString(),
         email: user.email,
-        role: 'user', // Default role, can be extended
+        role: user.role_name || payload.role || 'user', // Use role from database or JWT payload
         isActive: user.status === 'active',
       };
     } catch (error) {
@@ -411,10 +412,13 @@ export class AuthService implements AuthServiceInterface {
   /**
    * Validate user credentials (private method)
    */
-  private async validateUserCredentials(email: string, password: string): Promise<User | null> {
+  private async validateUserCredentials(
+    email: string,
+    password: string
+  ): Promise<UserWithRole | null> {
     try {
-      // Get user by email with password hash using UserService
-      const userWithPassword = await this.userService.getUserByEmailWithPassword(email);
+      // Get user by email with password hash and role information using UserService
+      const userWithPassword = await this.userService.getUserByEmailWithPasswordAndRole(email);
 
       if (!userWithPassword) {
         return null;
@@ -428,14 +432,17 @@ export class AuthService implements AuthServiceInterface {
         return null;
       }
 
-      // Return user without password hash
-      const user: User = {
+      // Return user without password hash but with role information
+      const user: UserWithRole = {
         id: userWithPassword.id,
         uuid: userWithPassword.uuid,
         email: userWithPassword.email,
         password: userWithPassword.password,
         name: userWithPassword.name,
         role_id: userWithPassword.role_id,
+        role_name: userWithPassword.role_name,
+        role_display_name: userWithPassword.role_display_name,
+        role_description: userWithPassword.role_description,
         status: userWithPassword.status,
         email_verified_at: userWithPassword.email_verified_at,
         last_login_at: userWithPassword.last_login_at,
