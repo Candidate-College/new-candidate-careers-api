@@ -135,4 +135,33 @@ export class AuthValidator {
       confirm_password: data.confirm_password,
     };
   }
+
+  /**
+   * Validate refresh token request
+   */
+  static validateRefreshTokenRequest(data: any): ValidationResult {
+    const errors: ValidationError[] = [];
+    if (!data.refresh_token || typeof data.refresh_token !== 'string') {
+      errors.push({
+        field: 'refresh_token',
+        message: 'Refresh token is required and must be a string',
+      });
+    }
+    return { isValid: errors.length === 0, errors };
+  }
+
+  /**
+   * Validate logout request
+   */
+  static validateLogoutRequest(data: any): ValidationResult {
+    // refresh_token is optional, but if present must be a string
+    const errors: ValidationError[] = [];
+    if (data.refresh_token !== undefined && typeof data.refresh_token !== 'string') {
+      errors.push({
+        field: 'refresh_token',
+        message: 'Refresh token must be a string if provided',
+      });
+    }
+    return { isValid: errors.length === 0, errors };
+  }
 }
