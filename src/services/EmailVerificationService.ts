@@ -22,9 +22,9 @@ import { generateUUID } from '@/utils/uuid';
 import { mailer } from '@/mails';
 
 export class EmailVerificationService {
-  private tokenModel: EmailVerificationTokenModel;
-  private userModel: UserModel;
-  private config: EmailVerificationConfig;
+  private readonly tokenModel: EmailVerificationTokenModel;
+  private readonly userModel: UserModel;
+  private readonly config: EmailVerificationConfig;
 
   constructor(config: Partial<EmailVerificationConfig> = {}) {
     this.tokenModel = new EmailVerificationTokenModel();
@@ -45,6 +45,7 @@ export class EmailVerificationService {
     request: CreateEmailVerificationTokenRequest
   ): Promise<EmailVerificationServiceResult> {
     try {
+      // Only log major action
       logger.info(`Creating email verification token for user ${request.user_id}`);
 
       // Validate request
@@ -61,7 +62,6 @@ export class EmailVerificationService {
       }
 
       const sanitizedRequest = EmailVerificationValidator.sanitizeCreateTokenData(request);
-      logger.info(`Sanitized request:`, sanitizedRequest);
 
       // Check if user exists
       const user = await this.userModel.findById(sanitizedRequest.user_id);
@@ -76,9 +76,7 @@ export class EmailVerificationService {
         };
       }
 
-      logger.info(`User found: ${user.email}`);
-
-      // Check if user email is already verified
+      // Warn if already verified
       if (user.email_verified_at) {
         logger.warn(`Email already verified for user ${sanitizedRequest.user_id}`);
         return {
@@ -92,10 +90,6 @@ export class EmailVerificationService {
 
       // Check token limit per user
       const existingTokens = await this.tokenModel.findActiveByUserId(sanitizedRequest.user_id);
-      logger.info(
-        `Found ${existingTokens.length} existing tokens for user ${sanitizedRequest.user_id}`
-      );
-
       if (existingTokens.length >= this.config.max_tokens_per_user) {
         logger.warn(`Token limit exceeded for user ${sanitizedRequest.user_id}`);
         return {
@@ -114,9 +108,6 @@ export class EmailVerificationService {
           (sanitizedRequest.expires_in_hours || this.config.token_expiry_hours) * 60 * 60 * 1000
       );
 
-      logger.info(`Generated token: ${token}`);
-      logger.info(`Token expires at: ${expiresAt}`);
-
       // Create token record
       const tokenData: {
         token: string;
@@ -131,21 +122,12 @@ export class EmailVerificationService {
         type: sanitizedRequest.type,
         expires_at: expiresAt,
       };
-
-      if (sanitizedRequest.ip_address) {
-        tokenData.ip_address = sanitizedRequest.ip_address;
-      }
-
-      if (sanitizedRequest.user_agent) {
-        tokenData.user_agent = sanitizedRequest.user_agent;
-      }
-
-      logger.info(`Creating token record:`, tokenData);
+      if (sanitizedRequest.ip_address) tokenData.ip_address = sanitizedRequest.ip_address;
+      if (sanitizedRequest.user_agent) tokenData.user_agent = sanitizedRequest.user_agent;
 
       const tokenRecord = await this.tokenModel.createToken(tokenData);
 
-      logger.info(`Token record created successfully:`, tokenRecord);
-
+      logger.info(`Email verification token created for user ${sanitizedRequest.user_id}`);
       return {
         success: true,
         error: '',
@@ -172,7 +154,8 @@ export class EmailVerificationService {
     request: VerifyEmailVerificationTokenRequest
   ): Promise<EmailVerificationServiceResult> {
     try {
-      logger.info(`Starting token verification for token: ${request.token.substring(0, 8)}...`);
+      // Only log major action
+      logger.info(`Verifying email for token: ${request.token.substring(0, 8)}...`);
 
       // Validate request
       const validation = EmailVerificationValidator.validateVerifyTokenRequest(request);
@@ -188,12 +171,8 @@ export class EmailVerificationService {
       }
 
       const sanitizedRequest = EmailVerificationValidator.sanitizeVerifyTokenData(request);
-      logger.info(`Sanitized verification request:`, {
-        token: sanitizedRequest.token.substring(0, 8) + '...',
-      });
 
       // Find token
-      logger.info(`Searching for token in database...`);
       const token = await this.tokenModel.findByToken(sanitizedRequest.token);
       if (!token) {
         logger.warn(`Token not found in database: ${sanitizedRequest.token.substring(0, 8)}...`);
@@ -205,14 +184,6 @@ export class EmailVerificationService {
           message: 'Token not found',
         };
       }
-
-      logger.info(`Token found in database:`, {
-        token_id: token.id,
-        user_id: token.user_id,
-        type: token.type,
-        is_used: token.is_used,
-        expires_at: token.expires_at,
-      });
 
       // Validate token
       const tokenValidation = EmailVerificationValidator.validateToken(token);
@@ -251,16 +222,10 @@ export class EmailVerificationService {
         };
       }
 
-      logger.info(
-        `Token validation passed, proceeding with verification for user ${token.user_id}`
-      );
-
       // Mark token as used
       await this.tokenModel.markAsUsed(token.id);
-      logger.info(`Token marked as used: ${token.id}`);
 
       // Update user email verification status
-      logger.info(`Updating user ${token.user_id} email verification status`);
       const userId =
         typeof token.user_id === 'string' ? parseInt(token.user_id, 10) : token.user_id;
       const updatedUser = await this.userModel.updateUser(userId, {
@@ -280,7 +245,6 @@ export class EmailVerificationService {
       }
 
       logger.info(`Email verified for user ${userId}`);
-
       return {
         success: true,
         error: '',
