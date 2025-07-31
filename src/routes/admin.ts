@@ -181,35 +181,12 @@ router.get('/roles/:id', roleController.getRoleById.bind(roleController));
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             required:
- *               - name
- *               - display_name
- *             properties:
- *               name:
- *                 type: string
- *                 minLength: 3
- *                 maxLength: 50
- *                 pattern: '^[a-z_][a-z0-9_]*$'
- *                 description: Role name in snake_case format
- *                 example: "hr_manager"
- *               display_name:
- *                 type: string
- *                 minLength: 3
- *                 maxLength: 100
- *                 description: Human-readable role name
- *                 example: "HR Manager"
- *               description:
- *                 type: string
- *                 maxLength: 500
- *                 description: Role description
- *                 example: "Manages HR-related operations"
- *               permissions:
- *                 type: array
- *                 items:
- *                   type: string
- *                 description: Array of permission strings
- *                 example: ["user:read", "user:create", "user:update"]
+ *             $ref: '#/components/schemas/CreateRoleRequest'
+ *           example:
+ *             name: "hr_manager"
+ *             display_name: "HR Manager"
+ *             description: "Manages HR-related operations"
+ *             permissions: ["users.create", "users.read", "users.update"]
  *     responses:
  *       201:
  *         description: Role created successfully
@@ -228,6 +205,21 @@ router.get('/roles/:id', roleController.getRoleById.bind(roleController));
  *                   $ref: '#/components/schemas/RoleWithPermissions'
  *       400:
  *         description: Validation failed
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "Validation failed"
+ *                 errors:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/ValidationError'
  *       401:
  *         description: Unauthorized
  *       403:
@@ -259,22 +251,11 @@ router.post('/roles', roleController.createRole.bind(roleController));
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             properties:
- *               display_name:
- *                 type: string
- *                 minLength: 3
- *                 maxLength: 100
- *                 description: Human-readable role name
- *               description:
- *                 type: string
- *                 maxLength: 500
- *                 description: Role description
- *               permissions:
- *                 type: array
- *                 items:
- *                   type: string
- *                 description: Array of permission strings
+ *             $ref: '#/components/schemas/UpdateRoleRequest'
+ *           example:
+ *             display_name: "Senior HR Manager"
+ *             description: "Manages senior HR operations"
+ *             permissions: ["users.create", "users.read", "users.update", "users.delete"]
  *     responses:
  *       200:
  *         description: Role updated successfully
@@ -371,21 +352,10 @@ router.delete('/roles/:id', roleController.deleteRole.bind(roleController));
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             required:
- *               - permissions
- *               - action
- *             properties:
- *               permissions:
- *                 type: array
- *                 items:
- *                   type: string
- *                 description: Array of permission strings
- *                 example: ["user:read", "user:create"]
- *               action:
- *                 type: string
- *                 enum: [add, remove, replace]
- *                 description: Action to perform on permissions
+ *             $ref: '#/components/schemas/AssignPermissionsRequest'
+ *           example:
+ *             permissions: ["users.create", "users.read"]
+ *             action: "add"
  *     responses:
  *       200:
  *         description: Permissions assigned successfully
@@ -550,31 +520,15 @@ router.get(
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             required:
- *               - role_permissions
- *             properties:
- *               role_permissions:
- *                 type: array
- *                 items:
- *                   type: object
- *                   required:
- *                     - role_id
- *                     - permissions
- *                     - action
- *                   properties:
- *                     role_id:
- *                       type: integer
- *                       description: Role ID
- *                     permissions:
- *                       type: array
- *                       items:
- *                         type: string
- *                       description: Array of permission strings
- *                     action:
- *                       type: string
- *                       enum: [add, remove, replace]
- *                       description: Action to perform
+ *             $ref: '#/components/schemas/BulkAssignPermissionsRequest'
+ *           example:
+ *             role_permissions:
+ *               - role_id: 1
+ *                 permissions: ["users.create", "users.read"]
+ *                 action: "add"
+ *               - role_id: 2
+ *                 permissions: ["roles.view", "roles.create"]
+ *                 action: "replace"
  *     responses:
  *       200:
  *         description: Permissions bulk assigned successfully

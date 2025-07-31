@@ -59,7 +59,7 @@ export const validatePermissionName = (name: string): PermissionValidationError[
   if (!PERMISSION_NAME_REGEX.test(trimmedName)) {
     errors.push({
       field: 'name',
-      message: 'Permission name must be in valid format (snake_case with optional colons)',
+      message: 'Permission name must be in valid format (e.g., users.create, roles.view)',
       code: 'INVALID_NAME_FORMAT',
     });
   }
@@ -143,7 +143,7 @@ export const validateSinglePermission = (
   if (!PERMISSION_NAME_REGEX.test(trimmedPermission)) {
     errors.push({
       field: fieldName,
-      message: 'Permission must be in valid format (snake_case with optional colons)',
+      message: 'Permission must be in valid format (e.g., users.create, roles.view)',
       code: 'INVALID_PERMISSION_FORMAT',
     });
   }

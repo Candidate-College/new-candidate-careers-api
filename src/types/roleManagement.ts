@@ -169,7 +169,7 @@ export enum PermissionAction {
 }
 
 export const ROLE_NAME_REGEX = /^[a-z_][a-z0-9_]*$/;
-export const PERMISSION_NAME_REGEX = /^[a-z_][a-z0-9_:]*$/;
+export const PERMISSION_NAME_REGEX = /^[a-z][a-z0-9]*\.[a-z][a-z0-9]*$/;
 
 export const ROLE_NAME_MIN_LENGTH = 3;
 export const ROLE_NAME_MAX_LENGTH = 50;

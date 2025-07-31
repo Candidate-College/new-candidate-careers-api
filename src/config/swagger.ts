@@ -490,6 +490,210 @@ const options: swaggerJsdoc.Options = {
           },
           required: ['message', 'timestamp'],
         },
+
+        // Role and Permission schemas
+        Role: {
+          type: 'object',
+          properties: {
+            id: {
+              type: 'integer',
+              description: 'Role ID',
+            },
+            name: {
+              type: 'string',
+              description: 'Role name in snake_case format',
+              example: 'hr_manager',
+            },
+            display_name: {
+              type: 'string',
+              description: 'Human-readable role name',
+              example: 'HR Manager',
+            },
+            description: {
+              type: 'string',
+              description: 'Role description',
+              example: 'Manages HR-related operations',
+            },
+            created_at: {
+              type: 'string',
+              format: 'date-time',
+              description: 'Role creation timestamp',
+            },
+            updated_at: {
+              type: 'string',
+              format: 'date-time',
+              description: 'Last update timestamp',
+            },
+          },
+          required: ['id', 'name', 'display_name'],
+        },
+        Permission: {
+          type: 'object',
+          properties: {
+            id: {
+              type: 'integer',
+              description: 'Permission ID',
+            },
+            name: {
+              type: 'string',
+              description: 'Permission name in format resource.action',
+              example: 'users.create',
+            },
+            description: {
+              type: 'string',
+              description: 'Permission description',
+              example: 'Create new users',
+            },
+            created_at: {
+              type: 'string',
+              format: 'date-time',
+              description: 'Permission creation timestamp',
+            },
+            updated_at: {
+              type: 'string',
+              format: 'date-time',
+              description: 'Last update timestamp',
+            },
+          },
+          required: ['id', 'name'],
+        },
+        RoleWithPermissions: {
+          type: 'object',
+          allOf: [
+            { $ref: '#/components/schemas/Role' },
+            {
+              type: 'object',
+              properties: {
+                permissions: {
+                  type: 'array',
+                  items: {
+                    $ref: '#/components/schemas/Permission',
+                  },
+                  description: 'List of permissions assigned to this role',
+                },
+                users_count: {
+                  type: 'integer',
+                  description: 'Number of users assigned to this role',
+                  example: 5,
+                },
+              },
+              required: ['permissions'],
+            },
+          ],
+        },
+        CreateRoleRequest: {
+          type: 'object',
+          properties: {
+            name: {
+              type: 'string',
+              minLength: 3,
+              maxLength: 50,
+              pattern: '^[a-z_][a-z0-9_]*$',
+              description: 'Role name in snake_case format',
+              example: 'hr_manager',
+            },
+            display_name: {
+              type: 'string',
+              minLength: 3,
+              maxLength: 100,
+              description: 'Human-readable role name',
+              example: 'HR Manager',
+            },
+            description: {
+              type: 'string',
+              maxLength: 500,
+              description: 'Role description',
+              example: 'Manages HR-related operations',
+            },
+            permissions: {
+              type: 'array',
+              items: {
+                type: 'string',
+              },
+              description: 'Array of permission strings',
+              example: ['users.create', 'users.read', 'users.update'],
+            },
+          },
+          required: ['name', 'display_name'],
+        },
+        UpdateRoleRequest: {
+          type: 'object',
+          properties: {
+            display_name: {
+              type: 'string',
+              minLength: 3,
+              maxLength: 100,
+              description: 'Human-readable role name',
+              example: 'HR Manager',
+            },
+            description: {
+              type: 'string',
+              maxLength: 500,
+              description: 'Role description',
+              example: 'Manages HR-related operations',
+            },
+            permissions: {
+              type: 'array',
+              items: {
+                type: 'string',
+              },
+              description: 'Array of permission strings',
+              example: ['users.create', 'users.read', 'users.update'],
+            },
+          },
+        },
+        AssignPermissionsRequest: {
+          type: 'object',
+          properties: {
+            permissions: {
+              type: 'array',
+              items: {
+                type: 'string',
+              },
+              description: 'Array of permission strings',
+              example: ['users.create', 'users.read'],
+            },
+            action: {
+              type: 'string',
+              enum: ['add', 'remove', 'replace'],
+              description: 'Action to perform on permissions',
+              example: 'add',
+            },
+          },
+          required: ['permissions', 'action'],
+        },
+        BulkAssignPermissionsRequest: {
+          type: 'object',
+          properties: {
+            role_permissions: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  role_id: {
+                    type: 'integer',
+                    description: 'Role ID',
+                  },
+                  permissions: {
+                    type: 'array',
+                    items: {
+                      type: 'string',
+                    },
+                    description: 'Array of permission strings',
+                  },
+                  action: {
+                    type: 'string',
+                    enum: ['add', 'remove', 'replace'],
+                    description: 'Action to perform',
+                  },
+                },
+                required: ['role_id', 'permissions', 'action'],
+              },
+              description: 'Array of role-permission assignments',
+            },
+          },
+          required: ['role_permissions'],
+        },
       },
     },
     tags: [
@@ -512,6 +716,14 @@ const options: swaggerJsdoc.Options = {
       {
         name: 'Health',
         description: 'Health check and system status endpoints',
+      },
+      {
+        name: 'Admin - Roles',
+        description: 'Role management endpoints for administrators',
+      },
+      {
+        name: 'Admin - Permissions',
+        description: 'Permission management endpoints for administrators',
       },
     ],
   },

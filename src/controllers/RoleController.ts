@@ -132,11 +132,27 @@ export class RoleController {
       const role = await this.roleService.createRole(createData, Number(req.user!.id));
       roleResource.formatRoleCreatedResponse(res, role);
     } catch (error) {
-      if (error instanceof Error && error.message.includes('already exists')) {
+      // Handle duplicate role error
+      if (
+        error instanceof Error &&
+        (error.message.includes('already exists') ||
+          error.message.includes('duplicate key') ||
+          error.message.includes('unique constraint'))
+      ) {
         res.status(409).json({
           status: 409,
           message: 'Role with this name already exists',
           error: 'ROLE_ALREADY_EXISTS',
+        });
+        return;
+      }
+
+      // Handle validation errors
+      if (error instanceof Error && error.message.includes('Validation failed')) {
+        res.status(400).json({
+          status: 400,
+          message: error.message,
+          error: 'VALIDATION_ERROR',
         });
         return;
       }

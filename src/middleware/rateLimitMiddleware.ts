@@ -280,16 +280,16 @@ export class RateLimitMiddleware {
   static createRateLimit(options: RateLimitMiddlewareOptions = {}) {
     const { strategy = 'moderate', customConfig, skipPaths = [] } = options;
 
+    // Create rate limiter instance at middleware creation time, not during request
+    const rateLimiter = RateLimitService.createRateLimiter(strategy, customConfig);
+
     return (req: Request, res: Response, next: NextFunction) => {
       // Skip rate limiting for specified paths
       if (skipPaths.some(path => req.path.startsWith(path))) {
         return next();
       }
 
-      // Create rate limiter based on strategy
-      const rateLimiter = RateLimitService.createRateLimiter(strategy, customConfig);
-
-      // Apply rate limiting
+      // Apply rate limiting using the pre-created instance
       rateLimiter(req, res, next);
     };
   }

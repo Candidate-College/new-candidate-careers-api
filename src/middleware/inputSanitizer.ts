@@ -59,7 +59,8 @@ export class InputSanitizer {
     // SQL Injection patterns
     {
       name: 'SQL Injection Keywords',
-      pattern: /\b(union|select|insert|update|delete|drop|create|alter|exec|execute)\b/gi,
+      pattern:
+        /\b(union\s+select|select\s+.*\s+from|insert\s+into|update\s+.*\s+set|delete\s+from|drop\s+table|create\s+table|alter\s+table|exec\s+|execute\s+)\b/gi,
       severity: 'high',
       description: 'Potential SQL injection attack',
       examples: ["' UNION SELECT * FROM users", 'DROP TABLE users'],
@@ -114,7 +115,7 @@ export class InputSanitizer {
     // Command Injection patterns
     {
       name: 'Command Injection',
-      pattern: /[;&|`$(){}[\]]/g,
+      pattern: /[;&|`$()[\]]/g,
       severity: 'critical',
       description: 'Potential command injection attack',
       examples: ['; rm -rf /', '| cat /etc/passwd', '`whoami`'],
@@ -144,16 +145,22 @@ export class InputSanitizer {
       // Convert to string for analysis if not already
       const dataString = typeof data === 'string' ? data : JSON.stringify(data);
 
-      // Check for threats
-      for (const pattern of this.threatPatterns) {
-        if (pattern.pattern.test(dataString)) {
-          threats.push({
-            type: this.getThreatType(pattern.name),
-            severity: pattern.severity,
-            description: pattern.description,
-            payload: dataString,
-            location,
-          });
+      // Check for threats with intelligent handling for JSON body data
+      if (location === 'body' && typeof data === 'object' && data !== null) {
+        // For JSON body data, only check string values within the object
+        this.checkObjectForThreats(data, threats, location);
+      } else {
+        // For other data types, check the entire string
+        for (const pattern of this.threatPatterns) {
+          if (pattern.pattern.test(dataString)) {
+            threats.push({
+              type: this.getThreatType(pattern.name),
+              severity: pattern.severity,
+              description: pattern.description,
+              payload: dataString,
+              location,
+            });
+          }
         }
       }
 
@@ -287,6 +294,44 @@ export class InputSanitizer {
     if (patternName.includes('Path')) return 'path-traversal';
     if (patternName.includes('Command')) return 'command-injection';
     return 'xss'; // Default to XSS
+  }
+
+  /**
+   * Check object for threats by examining string values only
+   */
+  private static checkObjectForThreats(
+    obj: any,
+    threats: SecurityThreat[],
+    location: 'body' | 'query' | 'params' | 'headers'
+  ): void {
+    const checkValue = (value: any, path: string = '') => {
+      if (typeof value === 'string') {
+        // Only check string values for threats
+        for (const pattern of this.threatPatterns) {
+          if (pattern.pattern.test(value)) {
+            threats.push({
+              type: this.getThreatType(pattern.name),
+              severity: pattern.severity,
+              description: pattern.description,
+              payload: value,
+              location,
+            });
+          }
+        }
+      } else if (Array.isArray(value)) {
+        // Recursively check array elements
+        value.forEach((item, index) => {
+          checkValue(item, `${path}[${index}]`);
+        });
+      } else if (typeof value === 'object' && value !== null) {
+        // Recursively check object properties
+        Object.keys(value).forEach(key => {
+          checkValue(value[key], path ? `${path}.${key}` : key);
+        });
+      }
+    };
+
+    checkValue(obj);
   }
 
   /**

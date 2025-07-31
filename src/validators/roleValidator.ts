@@ -188,7 +188,7 @@ export const validatePermissions = (permissions?: string[]): RoleValidationError
       if (!PERMISSION_NAME_REGEX.test(trimmedPermission)) {
         errors.push({
           field: `permissions[${i}]`,
-          message: 'Permission must be in valid format (snake_case with optional colons)',
+          message: 'Permission must be in valid format (e.g., users.create, roles.view)',
           code: 'INVALID_PERMISSION_FORMAT',
         });
         continue;
