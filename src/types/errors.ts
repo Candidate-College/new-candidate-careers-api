@@ -22,6 +22,11 @@ export interface ValidationErrorResponse {
   timestamp: string;
 }
 
+export interface ValidationError {
+  field: string;
+  message: string;
+}
+
 export enum ErrorCodes {
   // Authentication & Authorization
   UNAUTHORIZED = 'UNAUTHORIZED',
