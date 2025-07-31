@@ -89,3 +89,6 @@ export * from './emailVerification';
 
 // Export audit logging types
 export * from './audit';
+
+// Export role management types
+export * from './roleManagement';
