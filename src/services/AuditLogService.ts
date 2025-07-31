@@ -361,6 +361,50 @@ export class AuditLogService {
   }
 
   /**
+   * Log role action
+   */
+  async logRoleAction(
+    userId: number,
+    action: string,
+    roleId: number,
+    roleName: string,
+    details?: Record<string, unknown>
+  ): Promise<void> {
+    const request: CreateAuditLogRequest = {
+      user_id: userId,
+      action,
+      subject_type: 'role',
+      subject_id: roleId,
+      description: `Role action: ${action} on role '${roleName}'`,
+      new_values: details,
+    };
+
+    await this.createAuditLog(request);
+  }
+
+  /**
+   * Log permission action
+   */
+  async logPermissionAction(
+    userId: number,
+    action: string,
+    permissionId: number,
+    permissionName: string,
+    details?: Record<string, unknown>
+  ): Promise<void> {
+    const request: CreateAuditLogRequest = {
+      user_id: userId,
+      action,
+      subject_type: 'permission',
+      subject_id: permissionId,
+      description: `Permission action: ${action} on permission '${permissionName}'`,
+      new_values: details,
+    };
+
+    await this.createAuditLog(request);
+  }
+
+  /**
    * Estimate log count for export validation
    */
   // eslint-disable-next-line @typescript-eslint/no-unused-vars

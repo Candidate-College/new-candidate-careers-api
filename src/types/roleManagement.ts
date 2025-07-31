@@ -88,6 +88,13 @@ export interface PermissionCheckResponse {
   user_id: number;
 }
 
+export interface PermissionCheckResult {
+  has_permission: boolean;
+  checked_permissions: string[];
+  granted_permissions: string[];
+  user_id: number;
+}
+
 export interface RolePermissionResponse {
   role_id: number;
   permissions: Permission[];
@@ -156,6 +163,9 @@ export enum PermissionAction {
   ADD = 'add',
   REMOVE = 'remove',
   REPLACE = 'replace',
+  CREATE = 'create',
+  UPDATE = 'update',
+  DELETE = 'delete',
 }
 
 export const ROLE_NAME_REGEX = /^[a-z_][a-z0-9_]*$/;

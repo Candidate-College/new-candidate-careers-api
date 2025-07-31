@@ -168,6 +168,15 @@ export class PermissionModel extends BaseModel<Permission> {
   }
 
   /**
+   * Search permissions
+   */
+  async search(searchTerm: string): Promise<Permission[]> {
+    let query = this.db(this.tableName);
+    query = this.applySearch(query, searchTerm);
+    return await query.orderBy('name', 'asc');
+  }
+
+  /**
    * Get permission statistics
    */
   async getPermissionStats(): Promise<{
