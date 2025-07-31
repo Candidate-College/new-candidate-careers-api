@@ -20,6 +20,7 @@ import {
   RateLimitResponse,
   RateLimitStats,
 } from '@/types/rateLimit';
+import { logger } from '@/utils/logger';
 
 /**
  * Rate Limiting Service
@@ -45,14 +46,26 @@ export class RateLimitService {
     strategy: RateLimitStrategy = 'moderate',
     customConfig?: Partial<RateLimitConfig>
   ) {
-    const baseConfig = RATE_LIMIT_PRESETS[strategy];
-    const config = {
-      ...baseConfig,
-      ...customConfig,
-      keyGenerator: this.generateKey,
-    };
+    try {
+      const baseConfig = RATE_LIMIT_PRESETS[strategy];
+      const config = {
+        ...baseConfig,
+        ...customConfig,
+        keyGenerator: this.generateKey.bind(this),
+      };
 
-    return rateLimit(config);
+      return rateLimit(config);
+    } catch (error) {
+      logger.error('Error creating rate limiter:', error);
+      // Return a safe fallback rate limiter
+      return rateLimit({
+        windowMs: 15 * 60 * 1000, // 15 minutes
+        max: 100,
+        message: 'Rate limit exceeded, please try again later.',
+        statusCode: 429,
+        headers: true,
+      });
+    }
   }
 
   /**
@@ -99,8 +112,15 @@ export class RateLimitService {
     const ip = req.ip || req.socket.remoteAddress || 'unknown';
     const userId = (req as { user?: { id: string } }).user?.id || 'anonymous';
 
-    // Track unique IPs for statistics
-    this.ipAddresses.add(ip);
+    // Track unique IPs for statistics (with safety check)
+    try {
+      if (this.ipAddresses) {
+        this.ipAddresses.add(ip);
+      }
+    } catch (error) {
+      // If ipAddresses is not available, continue without tracking
+      logger.warn('Rate limit IP tracking not available:', error);
+    }
 
     // Generate key based on IP and user
     return `${ip}:${userId}`;

@@ -24,6 +24,11 @@ export class SecurityHeadersService {
    * Create helmet configuration
    */
   static createHelmetConfig(config: SecurityHeadersConfig['helmet']) {
+    // Handle undefined or null config
+    if (!config) {
+      config = { enabled: true };
+    }
+
     if (!config.enabled) {
       return (req: Request, res: Response, next: NextFunction) => next();
     }
@@ -54,6 +59,11 @@ export class SecurityHeadersService {
    * Create CORS configuration
    */
   static createCorsConfig(config: SecurityHeadersConfig['cors']) {
+    // Handle undefined or null config
+    if (!config) {
+      config = { enabled: true };
+    }
+
     if (!config.enabled) {
       return (req: Request, res: Response, next: NextFunction) => next();
     }
@@ -126,6 +136,14 @@ export class SecurityHeadersService {
    * Create comprehensive security headers middleware
    */
   static createSecurityHeaders(config: SecurityHeadersConfig) {
+    // Handle undefined or null config
+    if (!config) {
+      config = {
+        helmet: { enabled: true },
+        cors: { enabled: true },
+      };
+    }
+
     const helmetMiddleware = this.createHelmetConfig(config.helmet);
     const corsMiddleware = this.createCorsConfig(config.cors);
     const additionalHeadersMiddleware = this.createAdditionalHeaders(config.additionalHeaders);
@@ -301,9 +319,18 @@ export class SecurityHeadersMiddleware {
    * Create security headers middleware with options
    */
   static createSecurityHeaders(options: SecurityMiddlewareOptions = {}) {
-    const { headers = { helmet: { enabled: true }, cors: { enabled: true } } } = options;
+    try {
+      const { headers = { helmet: { enabled: true }, cors: { enabled: true } } } = options;
 
-    return SecurityHeadersService.createSecurityHeaders(headers);
+      return SecurityHeadersService.createSecurityHeaders(headers);
+    } catch (error) {
+      logger.error('Error creating security headers middleware:', error);
+      // Return a safe fallback middleware
+      return (req: Request, res: Response, next: NextFunction) => {
+        logger.warn('Using fallback security headers middleware due to configuration error');
+        next();
+      };
+    }
   }
 }
 
@@ -334,7 +361,18 @@ export class SecurityHeadersErrorHandler {
 }
 
 // Export middleware functions for convenience
-export const securityHeaders = SecurityHeadersMiddleware.createSecurityHeaders;
+export const securityHeaders = (options?: SecurityMiddlewareOptions) => {
+  try {
+    return SecurityHeadersMiddleware.createSecurityHeaders(options);
+  } catch (error) {
+    logger.error('Error creating security headers middleware:', error);
+    // Return a safe fallback middleware
+    return (req: Request, res: Response, next: NextFunction) => {
+      logger.warn('Using fallback security headers middleware due to configuration error');
+      next();
+    };
+  }
+};
 export const strictSecurityHeaders = SecurityHeadersMiddleware.strict;
 export const moderateSecurityHeaders = SecurityHeadersMiddleware.moderate;
 export const lenientSecurityHeaders = SecurityHeadersMiddleware.lenient;

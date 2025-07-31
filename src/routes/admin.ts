@@ -23,7 +23,7 @@ const roleController = new RoleController();
 const permissionController = new PermissionController();
 
 // Apply security and rate limiting middleware to all admin routes
-router.use(securityHeaders);
+router.use(securityHeaders());
 router.use(
   RateLimitMiddleware.createRateLimit({
     strategy: 'moderate',
