@@ -107,7 +107,7 @@ export class AuditLogService {
       // TODO: Implement database query with filtering and pagination
       // const { logs, total } = await this.auditLogModel.findWithPagination(sanitizedParams);
 
-      // Mock response for now
+      // Mock response for now - will be implemented when AuditLogModel is extended
       const logs: AuditLog[] = [];
       const total = 0;
 
@@ -140,7 +140,7 @@ export class AuditLogService {
       // TODO: Implement database queries for statistics
       // const stats = await this.auditLogModel.getStatistics(sanitizedFilters);
 
-      // Mock statistics for now
+      // Mock statistics for now - will be implemented when AuditLogModel is extended
       return {
         total_logs: 0,
         successful_actions: 0,
@@ -186,7 +186,7 @@ export class AuditLogService {
       // TODO: Implement export functionality
       // const exportData = await this.auditLogModel.exportLogs(sanitizedOptions);
 
-      // Mock export result
+      // Mock export result - will be implemented when AuditLogModel is extended
       return {
         filename: `audit_logs_${new Date().toISOString()}.${sanitizedOptions.format}`,
         content: '',
@@ -211,7 +211,7 @@ export class AuditLogService {
       // TODO: Implement cleanup
       // const deletedCount = await this.auditLogModel.deleteOldLogs(cutoffDate);
 
-      const deletedCount = 0;
+      const deletedCount = 0; // Will be implemented when AuditLogModel is extended
 
       logger.info(`Cleaned up ${deletedCount} old audit logs`);
 
@@ -376,7 +376,7 @@ export class AuditLogService {
       subject_type: 'role',
       subject_id: roleId,
       description: `Role action: ${action} on role '${roleName}'`,
-      new_values: details,
+      ...(details && { new_values: details }),
     };
 
     await this.createAuditLog(request);
@@ -398,7 +398,7 @@ export class AuditLogService {
       subject_type: 'permission',
       subject_id: permissionId,
       description: `Permission action: ${action} on permission '${permissionName}'`,
-      new_values: details,
+      ...(details && { new_values: details }),
     };
 
     await this.createAuditLog(request);
@@ -411,6 +411,6 @@ export class AuditLogService {
   private async estimateLogCount(filters: AuditLogFilterOptions): Promise<number> {
     // TODO: Implement count estimation
     // return await this.auditLogModel.estimateCount(filters);
-    return 0;
+    return 0; // Will be implemented when AuditLogModel is extended
   }
 }
