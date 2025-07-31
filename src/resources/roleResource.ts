@@ -138,15 +138,7 @@ export const formatRoleUpdatedResponse = (
   role: RoleWithPermissions,
   message: string = 'Role updated successfully'
 ): void => {
-  const response: SingleRoleResponse = {
-    role: formatRole(role),
-  };
-
-  res.status(200).json({
-    status: 200,
-    message,
-    data: response,
-  });
+  formatSingleRoleResponse(res, role, message);
 };
 
 /**
