@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { AuthService } from '@/services/AuthService';
+import { AuthService } from '@/services/auth/AuthService';
 import { AuthValidator } from '@/validators/authValidator';
 import { LoginValidator } from '@/validators/loginValidator';
 import { AuthResource } from '@/resources/authResource';

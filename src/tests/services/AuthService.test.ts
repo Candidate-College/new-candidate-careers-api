@@ -1,4 +1,4 @@
-import { AuthService } from '../../services/AuthService';
+import { AuthService } from '../../services/auth/AuthService';
 import { UserService } from '../../services/UserService';
 import { JWTUtils } from '../../utils/jwt';
 import { createError } from '../../middleware/errorHandler';

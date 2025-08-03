@@ -1,13 +1,13 @@
 import request from 'supertest';
 import express from 'express';
 import { AuthController } from '../../controllers/AuthController';
-import { AuthService } from '../../services/AuthService';
+import { AuthService } from '../../services/auth/AuthService';
 import { UserService } from '../../services/UserService';
 import { User } from '../../types';
 import { errorHandler } from '../../middleware/errorHandler';
 
 // Mock the AuthService
-jest.mock('../../services/AuthService');
+jest.mock('../../services/auth/AuthService');
 const MockedAuthService = AuthService as jest.MockedClass<typeof AuthService>;
 
 // Mock the UserService

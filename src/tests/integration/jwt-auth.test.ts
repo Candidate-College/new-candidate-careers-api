@@ -1,7 +1,7 @@
 import request from 'supertest';
 import app from '../../index';
 import { JWTUtils } from '../../utils/jwt';
-import { AuthService } from '../../services/AuthService';
+import { AuthService } from '../../services/auth/AuthService';
 import { UserService } from '../../services/UserService';
 
 // Mock external dependencies
@@ -10,7 +10,7 @@ jest.mock('@/config/database', () => ({
 }));
 
 jest.mock('@/services/UserService');
-jest.mock('@/services/AuthService');
+jest.mock('@/services/auth/AuthService');
 
 const mockUserService = UserService as jest.MockedClass<typeof UserService>;
 const mockAuthService = AuthService as jest.MockedClass<typeof AuthService>;
