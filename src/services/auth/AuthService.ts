@@ -262,7 +262,7 @@ export class AuthService implements AuthServiceInterface {
   async checkRolePermissions(userId: number, roleId: number): Promise<boolean> {
     try {
       const user = await this.userService.getUserById(userId);
-      if (!user || !user.role_id) {
+      if (!user?.role_id) {
         return false;
       }
       return user.role_id === roleId;
