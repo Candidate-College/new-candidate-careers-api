@@ -187,13 +187,36 @@ export class TokenService {
   /**
    * Get token statistics for monitoring
    */
-  getTokenStats(): { totalTokens: number; expiredTokens: number } {
-    // This would typically integrate with a token store
-    // For now, return basic stats
-    // TODO: Implement actual token statistics
-    return {
-      totalTokens: 0,
-      expiredTokens: 0,
-    };
+  async getTokenStats(): Promise<{ totalTokens: number; expiredTokens: number }> {
+    try {
+      // Query database for token statistics
+      const { db } = await import('@/config/database');
+
+      // Count active sessions (non-expired tokens)
+      const activeSessions = await db('sessions')
+        .where('last_activity', '>', Math.floor(Date.now() / 1000) - 24 * 60 * 60) // Last 24 hours
+        .count('* as count')
+        .first();
+
+      // Count password reset tokens
+      const resetTokens = await db('password_reset_tokens')
+        .where('created_at', '>', new Date(Date.now() - 24 * 60 * 60 * 1000)) // Last 24 hours
+        .count('* as count')
+        .first();
+
+      const totalTokens = Number(activeSessions?.count || 0) + Number(resetTokens?.count || 0);
+      const expiredTokens = 0; // Would need to track expired tokens separately
+
+      return {
+        totalTokens,
+        expiredTokens,
+      };
+    } catch (error) {
+      logger.error('Failed to get token statistics:', error);
+      return {
+        totalTokens: 0,
+        expiredTokens: 0,
+      };
+    }
   }
 }

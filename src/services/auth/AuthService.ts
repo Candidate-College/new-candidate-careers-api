@@ -275,15 +275,15 @@ export class AuthService implements AuthServiceInterface {
   /**
    * Get service statistics for monitoring
    */
-  getServiceStats(): {
+  async getServiceStats(): Promise<{
     lockoutStats: { totalLockouts: number; activeLockouts: number };
     tokenStats: { totalTokens: number; expiredTokens: number };
     loginStats: { totalAttempts: number; successfulLogins: number; failedLogins: number };
     registrationStats: { totalRegistrations: number; successfulRegistrations: number };
-  } {
+  }> {
     return {
       lockoutStats: this.lockoutService.getLockoutStats(),
-      tokenStats: this.tokenService.getTokenStats(),
+      tokenStats: await this.tokenService.getTokenStats(),
       loginStats: this.loginService.getLoginStats(),
       registrationStats: this.registrationService.getRegistrationStats(),
     };
