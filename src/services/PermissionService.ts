@@ -22,6 +22,7 @@ import {
   PermissionValidationResult,
   PermissionCheckResult,
   PermissionAction,
+  PERMISSION_NAME_REGEX,
 } from '@/types/roleManagement';
 
 export class PermissionService {
@@ -435,8 +436,11 @@ export class PermissionService {
         field: 'permission',
         message: 'Permission must be between 3 and 100 characters',
       });
-    } else if (!/^[a-z_][a-z0-9_:]*$/.test(permission)) {
-      errors.push({ field: 'permission', message: 'Permission must be in snake_case format' });
+    } else if (!PERMISSION_NAME_REGEX.test(permission)) {
+      errors.push({
+        field: 'permission',
+        message: 'Permission must be in dot notation format (e.g., users.create)',
+      });
     }
 
     return {
@@ -474,8 +478,11 @@ export class PermissionService {
     if (data.name !== undefined) {
       if (!data.name || data.name.length < 3 || data.name.length > 100) {
         errors.push({ field: 'name', message: 'Name must be between 3 and 100 characters' });
-      } else if (!/^[a-z_][a-z0-9_:]*$/.test(data.name)) {
-        errors.push({ field: 'name', message: 'Name must be in snake_case format' });
+      } else if (!PERMISSION_NAME_REGEX.test(data.name)) {
+        errors.push({
+          field: 'name',
+          message: 'Name must be in dot notation format (e.g., users.create)',
+        });
       }
     }
 

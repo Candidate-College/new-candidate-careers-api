@@ -42,6 +42,11 @@ export class RoleService {
 
   /**
    * Create a new role with optional permissions
+   *
+   * @param roleData - The role data containing name, display_name, description, and optional permissions
+   * @param userId - The ID of the user creating the role (for audit logging)
+   * @returns Promise<RoleWithPermissions> - The created role with its associated permissions
+   * @throws {Error} When validation fails or role name already exists
    */
   async createRole(roleData: CreateRoleRequest, userId: number): Promise<RoleWithPermissions> {
     try {
@@ -99,6 +104,10 @@ export class RoleService {
 
   /**
    * Get a single role with permissions
+   *
+   * @param roleId - The unique identifier of the role to retrieve
+   * @returns Promise<RoleWithPermissions> - The role with its associated permissions
+   * @throws {Error} When role is not found
    */
   async getRole(roleId: number): Promise<RoleWithPermissions> {
     try {
@@ -115,6 +124,10 @@ export class RoleService {
 
   /**
    * Get all roles with pagination and filtering
+   *
+   * @param queryParams - Optional query parameters for pagination and search filtering
+   * @returns Promise<{roles: RoleWithPermissions[], pagination: PaginationMeta}> - Paginated list of roles with metadata
+   * @throws {Error} When database query fails
    */
   async getRoles(queryParams: RoleQueryParams = {}): Promise<{
     roles: RoleWithPermissions[];
@@ -144,6 +157,12 @@ export class RoleService {
 
   /**
    * Update a role
+   *
+   * @param roleId - The unique identifier of the role to update
+   * @param updateData - The role data to update (display_name, description, permissions)
+   * @param userId - The ID of the user updating the role (for audit logging)
+   * @returns Promise<RoleWithPermissions> - The updated role with its associated permissions
+   * @throws {Error} When role is not found or validation fails
    */
   async updateRole(
     roleId: number,
@@ -217,6 +236,11 @@ export class RoleService {
 
   /**
    * Delete a role
+   *
+   * @param roleId - The unique identifier of the role to delete
+   * @param userId - The ID of the user deleting the role (for audit logging)
+   * @returns Promise<boolean> - True if role was successfully deleted
+   * @throws {Error} When role is not found or cannot be deleted due to existing users
    */
   async deleteRole(roleId: number, userId: number): Promise<boolean> {
     try {
@@ -259,6 +283,10 @@ export class RoleService {
 
   /**
    * Get role with permissions
+   *
+   * @param roleId - The unique identifier of the role to retrieve
+   * @returns Promise<RoleWithPermissions | null> - The role with its associated permissions, or null if not found
+   * @throws {Error} When database query fails
    */
   async getRoleWithPermissions(roleId: number): Promise<RoleWithPermissions | null> {
     try {
@@ -271,6 +299,12 @@ export class RoleService {
 
   /**
    * Assign permissions to a role
+   *
+   * @param roleId - The unique identifier of the role to assign permissions to
+   * @param permissionNames - Array of permission names to assign to the role
+   * @param userId - The ID of the user assigning permissions (for audit logging)
+   * @returns Promise<void> - Resolves when permissions are successfully assigned
+   * @throws {Error} When permissions are not found or assignment fails
    */
   async assignPermissionsToRole(
     roleId: number,
@@ -324,6 +358,9 @@ export class RoleService {
 
   /**
    * Get role statistics
+   *
+   * @returns Promise<{total: number, withUsers: number, withoutUsers: number, withPermissions: number}> - Role statistics including counts
+   * @throws {Error} When database query fails
    */
   async getRoleStats(): Promise<{
     total: number;
@@ -341,6 +378,9 @@ export class RoleService {
 
   /**
    * Validate create role request
+   *
+   * @param data - The role data to validate
+   * @returns RoleValidationResult - Validation result with errors if any
    */
   private validateCreateRoleRequest(data: CreateRoleRequest): RoleValidationResult {
     const errors = [];
@@ -389,6 +429,9 @@ export class RoleService {
 
   /**
    * Validate update role request
+   *
+   * @param data - The role update data to validate
+   * @returns RoleValidationResult - Validation result with errors if any
    */
   private validateUpdateRoleRequest(data: UpdateRoleRequest): RoleValidationResult {
     const errors = [];
@@ -432,6 +475,9 @@ export class RoleService {
 
   /**
    * Validate role deletion
+   *
+   * @param roleId - The unique identifier of the role to validate for deletion
+   * @returns Promise<RoleValidationResult> - Validation result with errors if any
    */
   private async validateRoleDeletion(roleId: number): Promise<RoleValidationResult> {
     const errors = [];

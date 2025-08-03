@@ -22,6 +22,9 @@ const router = Router();
 const roleController = new RoleController();
 const permissionController = new PermissionController();
 
+// Singleton instance of AuditLoggingMiddleware to avoid repeated instantiation
+const auditLoggingMiddleware = new AuditLoggingMiddleware();
+
 // Apply security and rate limiting middleware to all admin routes
 router.use(securityHeaders());
 router.use(
@@ -41,7 +44,7 @@ router.use(requireSuperAdmin);
 
 // Apply input sanitization and audit logging
 router.use(InputSanitizerMiddleware.strict());
-router.use(new AuditLoggingMiddleware().logAuthAttempts);
+router.use(auditLoggingMiddleware.logAuthAttempts);
 
 // ============================================================================
 // ROLE MANAGEMENT ROUTES

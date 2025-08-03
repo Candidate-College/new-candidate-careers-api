@@ -13,6 +13,9 @@ import { AuthenticatedRequest } from '@/types/jwt';
 import { PermissionService } from '@/services/PermissionService';
 import { logger } from '@/utils/logger';
 
+// Singleton instance of PermissionService to avoid repeated instantiation
+const permissionService = new PermissionService();
+
 /**
  * Middleware to require a specific role
  */
@@ -98,7 +101,6 @@ export const requirePermission = (requiredPermission: string) => {
         return;
       }
 
-      const permissionService = new PermissionService();
       const hasPermission = await permissionService.checkUserPermission(
         Number(req.user.id),
         requiredPermission
@@ -137,7 +139,6 @@ export const requireAllPermissions = (requiredPermissions: string[]) => {
         return;
       }
 
-      const permissionService = new PermissionService();
       const hasAllPermissions = await permissionService.checkUserAllPermissions(
         Number(req.user.id),
         requiredPermissions
@@ -176,7 +177,6 @@ export const requireAnyPermission = (requiredPermissions: string[]) => {
         return;
       }
 
-      const permissionService = new PermissionService();
       const hasAnyPermission = await permissionService.checkUserAnyPermission(
         Number(req.user.id),
         requiredPermissions

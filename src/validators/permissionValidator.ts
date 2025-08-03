@@ -17,7 +17,7 @@ import {
   PERMISSION_NAME_MAX_LENGTH,
   PERMISSION_DESCRIPTION_MAX_LENGTH,
 } from '@/types/roleManagement';
-import { sanitizeInput } from '@utils/inputSanitizer';
+import { sanitizeInput } from '@/utils/inputSanitizer';
 
 // ============================================================================
 // VALIDATION FUNCTIONS
@@ -179,11 +179,11 @@ export const validatePermissionArray = (permissions: string[]): PermissionValida
 
   for (let i = 0; i < permissions.length; i++) {
     const permission = permissions[i];
-    if (permission === undefined) {
+    if (permission == null) {
       errors.push({
         field: `permissions[${i}]`,
-        message: 'Permission cannot be undefined',
-        code: 'UNDEFINED_PERMISSION',
+        message: 'Permission cannot be null or undefined',
+        code: 'NULL_OR_UNDEFINED_PERMISSION',
       });
       continue;
     }

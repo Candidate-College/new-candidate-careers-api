@@ -23,7 +23,7 @@ import {
   ROLE_DESCRIPTION_MAX_LENGTH,
   PERMISSION_NAME_REGEX,
 } from '../types/roleManagement';
-import { sanitizeInput } from '@utils/inputSanitizer';
+import { sanitizeInput } from '@/utils/inputSanitizer';
 
 // ============================================================================
 // VALIDATION FUNCTIONS

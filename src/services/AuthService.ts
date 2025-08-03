@@ -37,11 +37,16 @@ export class AuthService implements AuthServiceInterface {
   private static readonly MAX_FAILED = 5;
   private static readonly LOCKOUT_MS = 15 * 60 * 1000; // 15 minutes
 
-  constructor() {
-    this.userService = new UserService();
-    this.emailVerificationService = new EmailVerificationService();
-    this.permissionService = new PermissionService();
-    this.auditLogService = new AuditLogService();
+  constructor(
+    userService?: UserService,
+    emailVerificationService?: EmailVerificationService,
+    permissionService?: PermissionService,
+    auditLogService?: AuditLogService
+  ) {
+    this.userService = userService || new UserService();
+    this.emailVerificationService = emailVerificationService || new EmailVerificationService();
+    this.permissionService = permissionService || new PermissionService();
+    this.auditLogService = auditLogService || new AuditLogService();
   }
 
   /**
