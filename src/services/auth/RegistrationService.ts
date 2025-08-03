@@ -15,9 +15,9 @@ import { ErrorCodes } from '@/types/errors';
  */
 export class RegistrationService {
   constructor(
-    private userService: UserService,
-    private emailVerificationService: EmailVerificationService,
-    private auditLogService: AuditLogService
+    private readonly userService: UserService,
+    private readonly emailVerificationService: EmailVerificationService,
+    private readonly auditLogService: AuditLogService
   ) {}
 
   /**
