@@ -1,4 +1,5 @@
 import { UserService } from '../UserService';
+import { JWTUtils } from '@/utils/jwt';
 import { logger } from '@/utils/logger';
 import { PasswordUtils } from '@/utils/password';
 import { AUTH_CONFIG } from '@/config/auth';
@@ -10,7 +11,7 @@ import { ErrorCodes } from '@/types/errors';
  * Extracted from AuthService to follow single responsibility principle
  */
 export class PasswordService {
-  constructor(private userService: UserService) {}
+  constructor(private readonly userService: UserService) {}
 
   /**
    * Change user password (requires current password verification)
@@ -72,7 +73,7 @@ export class PasswordService {
 
       // Verify the reset token (this would be done by TokenService)
       // For now, we'll assume the token is already verified
-      const userId = this.extractUserIdFromToken();
+      const userId = this.extractUserIdFromToken(token);
 
       // Update password
       await this.userService.updateUser(parseInt(userId, 10), { password: newPassword });
@@ -189,13 +190,20 @@ export class PasswordService {
   }
 
   /**
-   * Extract user ID from token (placeholder implementation)
+   * Extract user ID from token
    */
-  private extractUserIdFromToken(): string {
-    // This would typically use JWTUtils to decode the token
-    // For now, return a placeholder
-    // TODO: Implement actual token extraction
-    return '1';
+  private extractUserIdFromToken(token: string): string {
+    try {
+      // Decode the JWT token to extract user ID
+      const payload = JWTUtils.decodeToken(token);
+      if (!payload?.sub) {
+        throw new Error('Invalid token payload');
+      }
+      return payload.sub;
+    } catch (error) {
+      logger.error('Failed to extract user ID from token:', error);
+      throw createError('Invalid reset token', 401, ErrorCodes.UNAUTHORIZED);
+    }
   }
 
   /**
