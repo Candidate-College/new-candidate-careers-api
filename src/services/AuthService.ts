@@ -1,5 +1,6 @@
 import { UserService } from './UserService';
 import { EmailVerificationService } from './EmailVerificationService';
+import { PermissionService } from './PermissionService';
 import { JWTUtils } from '@/utils/jwt';
 import { logger } from '@/utils/logger';
 import { PasswordUtils } from '@/utils/password';
@@ -21,10 +22,12 @@ import { RegisterRequest, LoginLockoutInfo } from '@/types/auth';
 import { createResourceConflictError, createError } from '@/utils/errors';
 import { ErrorCodes } from '@/types/errors';
 import { USER_ROLE_ID } from '@/types/roles';
+import { PermissionCheckResult } from '@/types/roleManagement';
 
 export class AuthService implements AuthServiceInterface {
   private readonly userService: UserService;
   private readonly emailVerificationService: EmailVerificationService;
+  private readonly permissionService: PermissionService;
   private readonly auditLogService: AuditLogService;
 
   /**
@@ -34,10 +37,16 @@ export class AuthService implements AuthServiceInterface {
   private static readonly MAX_FAILED = 5;
   private static readonly LOCKOUT_MS = 15 * 60 * 1000; // 15 minutes
 
-  constructor() {
-    this.userService = new UserService();
-    this.emailVerificationService = new EmailVerificationService();
-    this.auditLogService = new AuditLogService();
+  constructor(
+    userService?: UserService,
+    emailVerificationService?: EmailVerificationService,
+    permissionService?: PermissionService,
+    auditLogService?: AuditLogService
+  ) {
+    this.userService = userService || new UserService();
+    this.emailVerificationService = emailVerificationService || new EmailVerificationService();
+    this.permissionService = permissionService || new PermissionService();
+    this.auditLogService = auditLogService || new AuditLogService();
   }
 
   /**
@@ -549,6 +558,87 @@ export class AuthService implements AuthServiceInterface {
       return role === 'user';
     } catch (error) {
       logger.error('Role check failed:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Check if user has a specific permission
+   */
+  async userHasPermission(userId: number, permission: string): Promise<boolean> {
+    try {
+      return await this.permissionService.checkUserPermission(userId, permission);
+    } catch (error) {
+      logger.error(`Error checking user permission: ${error}`);
+      return false;
+    }
+  }
+
+  /**
+   * Check if user has any of the specified permissions
+   */
+  async userHasAnyPermission(
+    userId: number,
+    permissions: string[]
+  ): Promise<PermissionCheckResult> {
+    try {
+      return await this.permissionService.checkUserAnyPermission(userId, permissions);
+    } catch (error) {
+      logger.error(`Error checking user any permission: ${error}`);
+      return {
+        has_permission: false,
+        checked_permissions: permissions,
+        granted_permissions: [],
+        user_id: userId,
+      };
+    }
+  }
+
+  /**
+   * Check if user has all of the specified permissions
+   */
+  async userHasAllPermissions(
+    userId: number,
+    permissions: string[]
+  ): Promise<PermissionCheckResult> {
+    try {
+      return await this.permissionService.checkUserAllPermissions(userId, permissions);
+    } catch (error) {
+      logger.error(`Error checking user all permissions: ${error}`);
+      return {
+        has_permission: false,
+        checked_permissions: permissions,
+        granted_permissions: [],
+        user_id: userId,
+      };
+    }
+  }
+
+  /**
+   * Get all permissions for a user
+   */
+  async getUserPermissions(userId: number): Promise<string[]> {
+    try {
+      return await this.permissionService.getUserPermissionNames(userId);
+    } catch (error) {
+      logger.error(`Error getting user permissions for user ${userId}:`, error);
+      return [];
+    }
+  }
+
+  /**
+   * Check if user has role-based access
+   */
+  async checkRolePermissions(userId: number, roleId: number): Promise<boolean> {
+    try {
+      const user = await this.userService.getUserById(userId);
+      if (!user || !user.role_id) {
+        return false;
+      }
+
+      return user.role_id === roleId;
+    } catch (error) {
+      logger.error(`Error checking role permissions for user ${userId}:`, error);
       return false;
     }
   }

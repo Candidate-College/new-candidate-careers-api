@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { AuthController } from '@/controllers/AuthController';
 import { UserController } from '@/controllers/UserController';
 import { EmailVerificationController } from '@/controllers/EmailVerificationController';
+import { PermissionController } from '@/controllers/PermissionController';
 import { authRateLimit, generalRateLimit } from '@/middleware/rateLimitMiddleware';
 import { JWTMiddleware } from '@/middleware/jwtMiddleware';
 
@@ -9,6 +10,7 @@ const router = Router();
 const authController = new AuthController();
 const userController = new UserController();
 const emailVerificationController = new EmailVerificationController();
+const permissionController = new PermissionController();
 
 /**
  * @swagger
@@ -549,6 +551,168 @@ router.post(
   '/resend-verification',
   generalRateLimit(),
   emailVerificationController.resendVerificationEmail
+);
+
+// ============================================================================
+// PERMISSION CHECKING ROUTES (for authenticated users)
+// ============================================================================
+
+/**
+ * @swagger
+ * /api/v1/auth/permissions/check:
+ *   get:
+ *     summary: Check if user has a specific permission
+ *     tags: [Auth - Permissions]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: permission
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Permission string to check
+ *     responses:
+ *       200:
+ *         description: Permission check completed
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: integer
+ *                   example: 200
+ *                 message:
+ *                   type: string
+ *                   example: "Permission check completed"
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     has_permission:
+ *                       type: boolean
+ *                       description: Whether user has the permission
+ *                     permission:
+ *                       type: string
+ *                       description: The permission that was checked
+ *                     user_id:
+ *                       type: integer
+ *                       description: User ID
+ *       400:
+ *         description: Permission parameter missing or invalid
+ *       401:
+ *         description: Unauthorized
+ *       500:
+ *         description: Internal server error
+ */
+router.get(
+  '/permissions/check',
+  permissionController.checkUserPermission.bind(permissionController)
+);
+
+/**
+ * @swagger
+ * /api/v1/auth/permissions/check-multiple:
+ *   get:
+ *     summary: Check if user has multiple permissions
+ *     tags: [Auth - Permissions]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: permissions
+ *         required: true
+ *         schema:
+ *           type: array
+ *           items:
+ *             type: string
+ *         description: Array of permission strings to check
+ *     responses:
+ *       200:
+ *         description: Multiple permission check completed
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: integer
+ *                   example: 200
+ *                 message:
+ *                   type: string
+ *                   example: "Permission check completed"
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     has_permission:
+ *                       type: boolean
+ *                       description: Whether user has all permissions
+ *                     checked_permissions:
+ *                       type: array
+ *                       items:
+ *                         type: string
+ *                       description: Permissions that were checked
+ *                     granted_permissions:
+ *                       type: array
+ *                       items:
+ *                         type: string
+ *                       description: Permissions that user has
+ *                     user_id:
+ *                       type: integer
+ *                       description: User ID
+ *       400:
+ *         description: Permissions parameter missing or invalid
+ *       401:
+ *         description: Unauthorized
+ *       500:
+ *         description: Internal server error
+ */
+router.get(
+  '/permissions/check-multiple',
+  permissionController.checkUserPermissions.bind(permissionController)
+);
+
+/**
+ * @swagger
+ * /api/v1/auth/permissions/my-permissions:
+ *   get:
+ *     summary: Get all permissions for the authenticated user
+ *     tags: [Auth - Permissions]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: User permissions retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: integer
+ *                   example: 200
+ *                 message:
+ *                   type: string
+ *                   example: "User permissions retrieved successfully"
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     user_id:
+ *                       type: integer
+ *                       description: User ID
+ *                     permissions:
+ *                       type: array
+ *                       items:
+ *                         $ref: '#/components/schemas/Permission'
+ *                       description: All permissions for the user
+ *       401:
+ *         description: Unauthorized
+ *       500:
+ *         description: Internal server error
+ */
+router.get(
+  '/permissions/my-permissions',
+  permissionController.getUserPermissions.bind(permissionController)
 );
 
 export default router;

@@ -4,6 +4,7 @@ import cookieRoutes from './cookies';
 import corsRoutes from './cors';
 import authRoutes from './auth';
 import auditRoutes from './audit';
+import adminRoutes from './admin';
 
 const router = Router();
 
@@ -13,6 +14,7 @@ router.use('/users', userRoutes);
 router.use('/cookies', cookieRoutes);
 router.use('/cors', corsRoutes);
 router.use('/audit', auditRoutes);
+router.use('/admin', adminRoutes);
 
 /**
  * @swagger
@@ -53,6 +55,9 @@ router.use('/audit', auditRoutes);
  *                     audit:
  *                       type: string
  *                       example: "/audit"
+ *                     admin:
+ *                       type: string
+ *                       example: "/admin"
  *                     health:
  *                       type: string
  *                       example: "/health"
@@ -68,6 +73,7 @@ router.use('/audit', auditRoutes);
  *                 cookies: "/cookies"
  *                 cors: "/cors"
  *                 audit: "/audit"
+ *                 admin: "/admin"
  *                 health: "/health"
  *               documentation: "/api-docs"
  */
@@ -81,6 +87,7 @@ router.get('/', (req, res) => {
       cookies: '/cookies',
       cors: '/cors',
       audit: '/audit',
+      admin: '/admin',
       health: '/health',
     },
     documentation: '/api-docs',

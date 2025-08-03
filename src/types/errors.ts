@@ -22,6 +22,11 @@ export interface ValidationErrorResponse {
   timestamp: string;
 }
 
+export interface ValidationError {
+  field: string;
+  message: string;
+}
+
 export enum ErrorCodes {
   // Authentication & Authorization
   UNAUTHORIZED = 'UNAUTHORIZED',
@@ -41,6 +46,13 @@ export enum ErrorCodes {
   USER_NOT_FOUND = 'USER_NOT_FOUND',
   EMAIL_ALREADY_EXISTS = 'EMAIL_ALREADY_EXISTS',
   USERNAME_ALREADY_EXISTS = 'USERNAME_ALREADY_EXISTS',
+
+  // Role & Permission Management
+  ROLE_NOT_FOUND = 'ROLE_NOT_FOUND',
+  ROLE_ALREADY_EXISTS = 'ROLE_ALREADY_EXISTS',
+  PERMISSION_NOT_FOUND = 'PERMISSION_NOT_FOUND',
+  PERMISSION_ALREADY_EXISTS = 'PERMISSION_ALREADY_EXISTS',
+  ROLE_PERMISSION_CONFLICT = 'ROLE_PERMISSION_CONFLICT',
 
   // Server Errors
   INTERNAL_SERVER_ERROR = 'INTERNAL_SERVER_ERROR',

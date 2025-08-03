@@ -34,6 +34,12 @@ export class AuditValidator {
     'role_assigned',
     'permission_granted',
     'permission_revoked',
+    // Add role management actions
+    'create',
+    'read',
+    'update',
+    'delete',
+    'assign_permissions',
   ];
 
   private static readonly VALID_SUBJECT_TYPES = [
