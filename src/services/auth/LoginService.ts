@@ -9,6 +9,7 @@ import { LoginCredentials, LoginResponse, AuthenticatedUser, JWTUser } from '@/t
 import { UserWithRole } from '@/models';
 import { createError } from '@/utils/errors';
 import { ErrorCodes } from '@/types/errors';
+import { db } from '@/config/database';
 
 /**
  * LoginService handles user authentication and login logic
@@ -16,10 +17,10 @@ import { ErrorCodes } from '@/types/errors';
  */
 export class LoginService {
   constructor(
-    private userService: UserService,
-    private lockoutService: LockoutService,
-    private tokenService: TokenService,
-    private auditLogService: AuditLogService
+    private readonly userService: UserService,
+    private readonly lockoutService: LockoutService,
+    private readonly tokenService: TokenService,
+    private readonly auditLogService: AuditLogService
   ) {}
 
   /**
@@ -199,11 +200,33 @@ export class LoginService {
   /**
    * Get user login history
    */
-  async getUserLoginHistory(userId: number): Promise<any[]> {
+  async getUserLoginHistory(
+    userId: number,
+    limit: number = 10
+  ): Promise<
+    {
+      id: number;
+      user_id: number | null;
+      action: string;
+      subject_type: string;
+      subject_id: number;
+      description: string;
+      old_values: Record<string, unknown> | null;
+      new_values: Record<string, unknown> | null;
+      ip_address: string | null;
+      user_agent: string | null;
+      created_at: Date;
+    }[]
+  > {
     try {
-      // This would typically query audit logs for login events
-      // TODO: Implement actual login history query with limit parameter
-      return [];
+      const loginLogs = await db
+        .from('activity_logs')
+        .where('user_id', userId)
+        .where('action', 'login')
+        .orderBy('created_at', 'desc')
+        .limit(limit);
+
+      return loginLogs;
     } catch (error) {
       logger.error(`Error getting login history for user ${userId}:`, error);
       return [];
