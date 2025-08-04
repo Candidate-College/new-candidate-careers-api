@@ -9,12 +9,15 @@ import {
 } from '@/types/jwt';
 import { createError } from '@/utils/errors';
 import { ErrorCodes } from '@/types/errors';
+import { db } from '@/config/database';
 
 /**
  * TokenService handles all JWT token operations
  * Extracted from AuthService to follow single responsibility principle
  */
 export class TokenService {
+  constructor(private readonly database = db) {}
+
   /**
    * Generate token pair for user authentication
    */
@@ -189,17 +192,15 @@ export class TokenService {
    */
   async getTokenStats(): Promise<{ totalTokens: number; expiredTokens: number }> {
     try {
-      // Query database for token statistics
-      const { db } = await import('@/config/database');
-
+      // Use injected database connection instead of dynamic import
       // Count active sessions (non-expired tokens)
-      const activeSessions = await db('sessions')
+      const activeSessions = await this.database('sessions')
         .where('last_activity', '>', Math.floor(Date.now() / 1000) - 24 * 60 * 60) // Last 24 hours
         .count('* as count')
         .first();
 
       // Count password reset tokens
-      const resetTokens = await db('password_reset_tokens')
+      const resetTokens = await this.database('password_reset_tokens')
         .where('created_at', '>', new Date(Date.now() - 24 * 60 * 60 * 1000)) // Last 24 hours
         .count('* as count')
         .first();
