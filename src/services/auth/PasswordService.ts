@@ -5,6 +5,8 @@ import { PasswordUtils } from '@/utils/password';
 import { AUTH_CONFIG } from '@/config/auth';
 import { createError } from '@/utils/errors';
 import { ErrorCodes } from '@/types/errors';
+import { generateUUID } from '@/utils/uuid';
+import crypto from 'crypto';
 
 /**
  * PasswordService handles all password-related operations
@@ -12,6 +14,16 @@ import { ErrorCodes } from '@/types/errors';
  */
 export class PasswordService {
   constructor(private readonly userService: UserService) {}
+
+  /**
+   * Generate a cryptographically secure random string
+   * @param length Length of the random string
+   * @returns A secure random string
+   */
+  private generateSecureRandomString(length: number = 32): string {
+    // Use generateUUID for additional entropy combined with crypto.randomBytes
+    return crypto.randomBytes(length).toString('hex') + generateUUID().replace(/-/g, '');
+  }
 
   /**
    * Change user password (requires current password verification)
@@ -214,16 +226,25 @@ export class PasswordService {
       const user = await this.userService.getUserByEmail(email);
       if (!user) {
         // Don't reveal if user exists or not for security
-        logger.info(`Password reset requested for email: ${email}`);
-        return 'dummy-token';
+        // Return a cryptographically secure random string instead of static dummy
+        logger.info(`Password reset requested for email: ${email} (user not found)`);
+        return this.generateSecureRandomString(32);
       }
 
-      // This would typically use TokenService to generate a reset token
+      // Generate a proper reset token using JWTUtils
+      const resetToken = JWTUtils.generateVerificationToken(
+        user.id.toString(),
+        'password_reset',
+        user.email,
+        '1h' // 1 hour expiry
+      );
+
       logger.info(`Password reset token generated for user: ${user.id}`);
-      return 'dummy-reset-token';
+      return resetToken;
     } catch (error) {
       logger.error('Failed to generate password reset token:', error);
-      throw createError('Failed to generate reset token', 500, ErrorCodes.INTERNAL_SERVER_ERROR);
+      // Return a secure random string on error to prevent user enumeration
+      return this.generateSecureRandomString(32);
     }
   }
 
