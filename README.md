@@ -1670,7 +1670,7 @@ npm run test:coverage
 
 ```typescript
 import express from 'express';
-import { AuthService } from '@/services/AuthService';
+import { AuthService } from '@/services/auth/AuthService';
 import { authenticateToken } from '@/middleware/jwtMiddleware';
 import { asyncHandler } from '@/middleware/errorHandler';
 
